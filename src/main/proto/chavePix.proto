@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+
+package com.rcrdev;
+
+service PixService {
+  rpc registraChavePix (ChavePixRequest) returns (ChavePixResponse) {}
+}
+
+enum TipoChave {
+  DESCONHECIDO_TIPO_CHAVE = 0;
+  CPF       = 1;
+  TELEFONE  = 2;
+  EMAIL     = 3;
+  ALEATORIA = 4;
+}
+
+enum TipoConta {
+  DESCONHECIDO_TIPO_CONTA = 0;
+  CONTA_CORRENTE = 1;
+  CONTA_POUPANCA = 2;
+}
+
+message ChavePixRequest {
+  string idCliente    = 1;
+  TipoChave tipoChave = 2;
+  string chave        = 3;
+  TipoConta tipoConta = 4;
+}
+
+message ChavePixResponse {
+  string idCliente = 1;
+  string pixId     = 2;
+}
