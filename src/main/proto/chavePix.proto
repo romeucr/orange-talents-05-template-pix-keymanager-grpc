@@ -4,8 +4,12 @@ option java_multiple_files = true;
 
 package com.rcrdev;
 
-service PixService {
+service RegistraChavePixService {
   rpc registraChavePix (ChavePixRequest) returns (ChavePixResponse) {}
+}
+
+service DeletaChavePixService {
+  rpc deletaPixId (ChavePixDeleteRequest) returns (ChavePixDeleteResponse) {}
 }
 
 enum TipoChave {
@@ -30,6 +34,16 @@ message ChavePixRequest {
 }
 
 message ChavePixResponse {
+  string idCliente = 1;
+  string pixId     = 2;
+}
+
+message ChavePixDeleteRequest {
+  string idCliente = 1;
+  string pixId     = 2;
+}
+
+message ChavePixDeleteResponse {
   string idCliente = 1;
   string pixId     = 2;
 }

@@ -2,7 +2,7 @@ package com.rcrdev.grpc
 
 import com.rcrdev.ChavePixRequest
 import com.rcrdev.ChavePixResponse
-import com.rcrdev.PixServiceGrpc
+import com.rcrdev.RegistraChavePixServiceGrpc
 import com.rcrdev.chavepix.ChavePixRepository
 import com.rcrdev.cliente.ClienteRepository
 import com.rcrdev.compartilhado.handlers.ErrorAroundAdvice
@@ -27,7 +27,7 @@ class RegistraChavePixEndpoint(
     private val instituicaoRepository: InstituicaoRepository,
     private val itauErpClient: ItauErpClient,
     private val validador: Validator,
-): PixServiceGrpc.PixServiceImplBase() {
+): RegistraChavePixServiceGrpc.RegistraChavePixServiceImplBase() {
     private val logger = LoggerFactory.getLogger(RegistraChavePixEndpoint::class.java)
 
     override fun registraChavePix(request: ChavePixRequest?, responseObserver: StreamObserver<ChavePixResponse>?) {
