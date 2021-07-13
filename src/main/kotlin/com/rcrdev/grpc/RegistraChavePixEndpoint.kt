@@ -16,6 +16,7 @@ import io.micronaut.http.HttpStatus
 import io.micronaut.validation.Validated
 import org.slf4j.LoggerFactory
 import javax.inject.Singleton
+import javax.validation.Validator
 
 @Singleton
 @Validated
@@ -24,22 +25,22 @@ class RegistraChavePixEndpoint(
     private val chavePixRepository: ChavePixRepository,
     private val clienteRepository: ClienteRepository,
     private val instituicaoRepository: InstituicaoRepository,
-    private val itauErpClient: ItauErpClient
+    private val itauErpClient: ItauErpClient,
+    private val validador: Validator,
 ): PixServiceGrpc.PixServiceImplBase() {
     private val logger = LoggerFactory.getLogger(RegistraChavePixEndpoint::class.java)
 
     override fun registraChavePix(request: ChavePixRequest?, responseObserver: StreamObserver<ChavePixResponse>?) {
-        val clienteId = request?.idCliente
 
-        println("registra chave endpoint")
+        val novaChavePix = request?.toChavePix(validador)
 
         // verifica se cliente existe no ERP Itaú
-        logger.info("Consultando ClientId ${clienteId?.let { ofuscaUuid(it) }} no ERP Itaú.")
-        val itauErpResponse = clienteId?.let { itauErpClient.consultaCliente(it) }
+        logger.info("Consultando ClientId ${ofuscaUuid(novaChavePix?.clientId)} no ERP Itaú.")
+        val itauErpResponse = novaChavePix?.let { itauErpClient.consultaCliente(it.clientId) }
 
         if (itauErpResponse != null) {
             if (itauErpResponse.status == HttpStatus.NOT_FOUND) {
-                logger.warn("ClientId ${ofuscaUuid(clienteId)} não encontrado no ERP Itaú.")
+                logger.warn("ClientId ${ofuscaUuid(novaChavePix.clientId)} não encontrado no ERP Itaú.")
                 val error = Status.NOT_FOUND
                     .withDescription("Cliente não encontrado no ERP Itaú.")
                     .asRuntimeException()
@@ -48,7 +49,7 @@ class RegistraChavePixEndpoint(
                 return
             }
         }
-        logger.info("ClientId ${clienteId?.let { ofuscaUuid(it) }} encontrado no ERP Itaú.")
+        logger.info("ClientId ${novaChavePix?.let { ofuscaUuid(it.clientId) }} encontrado no ERP Itaú.")
 
         //salva instituicao no banco de dados
         val cliente = itauErpResponse?.body()?.toModel() ?: throw IllegalArgumentException()
@@ -60,13 +61,12 @@ class RegistraChavePixEndpoint(
         //salva cliente no banco de dados
         if (!clienteRepository.existsById(cliente.id)) {
             clienteRepository.save(cliente)
-            logger.info("ClientId ${ofuscaUuid(clienteId)} inserido na base de dados.")
+            logger.info("ClientId ${ofuscaUuid(novaChavePix.clientId)} inserido na base de dados.")
         }
 
-        // monta a ChavePix e salva no banco de dados
-        val novaChavePix = request.toChavePix()
+        //salva Chave Pix
         chavePixRepository.save(novaChavePix)
-        logger.info("PixId gerado com sucesso para o ClientId ${ofuscaUuid(clienteId)}!")
+        logger.info("PixId gerado com sucesso para o ClientId ${ofuscaUuid(novaChavePix.clientId)}!")
 
         val response = ChavePixResponse.newBuilder()
             .setPixId(novaChavePix.pixId)
