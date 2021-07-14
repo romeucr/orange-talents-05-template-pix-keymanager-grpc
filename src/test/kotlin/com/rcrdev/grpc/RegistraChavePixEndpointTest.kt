@@ -1,8 +1,8 @@
 package com.rcrdev.grpc
 
 import com.rcrdev.ChavePixRequest
-import com.rcrdev.PixServiceGrpc
-import com.rcrdev.PixServiceGrpc.PixServiceBlockingStub
+import com.rcrdev.RegistraChavePixServiceGrpc
+import com.rcrdev.RegistraChavePixServiceGrpc.RegistraChavePixServiceBlockingStub
 import com.rcrdev.TipoChave
 import com.rcrdev.TipoConta
 import com.rcrdev.TipoConta.CONTA_POUPANCA
@@ -20,6 +20,7 @@ import com.rcrdev.itau.ItauErpClient
 import io.grpc.ManagedChannel
 import io.grpc.Status
 import io.grpc.StatusRuntimeException
+import io.micronaut.context.annotation.Bean
 import io.micronaut.context.annotation.Factory
 import io.micronaut.grpc.annotation.GrpcChannel
 import io.micronaut.grpc.server.GrpcServerChannel
@@ -33,7 +34,6 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.mockito.Mockito
-import javax.inject.Singleton
 
 @MicronautTest(transactional = false)
 internal class RegistraChavePixEndpointTest(
@@ -41,7 +41,7 @@ internal class RegistraChavePixEndpointTest(
     private val clienteRepository: ClienteRepository,
     private val instituicaoRepository: InstituicaoRepository,
     private val itauErpClient: ItauErpClient,
-    private val grpcClient: PixServiceBlockingStub
+    private val grpcClient: RegistraChavePixServiceBlockingStub
 ) {
 
     private lateinit var instituicaoResponse: InstituicaoResponse
@@ -367,17 +367,17 @@ internal class RegistraChavePixEndpointTest(
     }
 
     /*** MOCKS ***/
-    // criando um client gRpc
+    // client gRpc para o RegistraChavePixService
     @Factory
     class Clients {
-        @Singleton
+        @Bean
         fun blockingStub(@GrpcChannel(GrpcServerChannel.NAME) channel: ManagedChannel
-        ): PixServiceBlockingStub? {
-            return PixServiceGrpc.newBlockingStub(channel)
+        ): RegistraChavePixServiceBlockingStub {
+            return RegistraChavePixServiceGrpc.newBlockingStub(channel)
         }
     }
 
-    //mockando a conexão com o ERP Itaú
+    // Conexão com o ERP Itaú
     @MockBean(ItauErpClient::class)
     fun erpItauMock(): ItauErpClient {
         return Mockito.mock(ItauErpClient::class.java)

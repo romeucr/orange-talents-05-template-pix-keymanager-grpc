@@ -1,7 +1,7 @@
 package com.rcrdev.grpc.extensoes
 
 import com.rcrdev.ChavePixDeleteRequest
-import com.rcrdev.chavepix.validadores.ChavePixDelete
+import com.rcrdev.chavepix.ChavePixDelete
 import javax.validation.ConstraintViolationException
 import javax.validation.Validator
 

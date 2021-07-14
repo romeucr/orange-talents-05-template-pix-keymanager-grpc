@@ -1,4 +1,4 @@
-package com.rcrdev.chavepix.validadores
+package com.rcrdev.chavepix
 
 import io.micronaut.core.annotation.Introspected
 import javax.validation.constraints.NotBlank

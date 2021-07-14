@@ -6,7 +6,6 @@ import io.micronaut.aop.InterceptorBean
 import io.micronaut.aop.MethodInterceptor
 import io.micronaut.aop.MethodInvocationContext
 import io.micronaut.http.client.exceptions.HttpClientException
-import java.lang.IllegalArgumentException
 import javax.inject.Singleton
 import javax.validation.ConstraintViolationException
 
@@ -31,17 +30,13 @@ class ErrorAroundAdviceInterceptor : MethodInterceptor<Any, Any> {
                             .withCause(ex)
                             .withDescription(ex.message)
 
-                is IllegalArgumentException -> Status.INVALID_ARGUMENT
-                    .withCause(ex)
-                    .withDescription("Erro inesperado")
-
                 is HttpClientException -> Status.ABORTED
                     .withCause(ex)
                     .withDescription("Não foi possível validar o cliente no ERP Itaú.")
 
                 else -> Status.UNKNOWN
                     .withCause(ex)
-                    .withDescription("Erro desconhecido")
+                    .withDescription("Erro inesperado")
             }
 
             responseObserver.onError(status.asRuntimeException())
