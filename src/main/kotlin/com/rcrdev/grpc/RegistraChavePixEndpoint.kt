@@ -3,16 +3,13 @@ package com.rcrdev.grpc
 import com.rcrdev.ChavePixRequest
 import com.rcrdev.ChavePixResponse
 import com.rcrdev.RegistraChavePixServiceGrpc
-import com.rcrdev.chavepix.ChavePixRepository
-import com.rcrdev.cliente.ClienteRepository
+import com.rcrdev.chavepix.ChavePixService
+import com.rcrdev.cliente.ClienteService
 import com.rcrdev.compartilhado.handlers.ErrorAroundAdvice
-import com.rcrdev.compartilhado.utils.ofuscaUuid
 import com.rcrdev.grpc.extensoes.toChavePix
-import com.rcrdev.instituicao.InstituicaoRepository
-import com.rcrdev.itau.ItauErpClient
-import io.grpc.Status
+import com.rcrdev.instituicao.InstituicaoService
+import com.rcrdev.itau.ItauService
 import io.grpc.stub.StreamObserver
-import io.micronaut.http.HttpStatus
 import io.micronaut.validation.Validated
 import org.slf4j.LoggerFactory
 import javax.inject.Singleton
@@ -22,59 +19,38 @@ import javax.validation.Validator
 @Validated
 @ErrorAroundAdvice
 class RegistraChavePixEndpoint(
-    private val chavePixRepository: ChavePixRepository,
-    private val clienteRepository: ClienteRepository,
-    private val instituicaoRepository: InstituicaoRepository,
-    private val itauErpClient: ItauErpClient,
     private val validador: Validator,
+    private val itauService: ItauService,
+    private val instituicaoService: InstituicaoService,
+    private val clienteService: ClienteService,
+    private val chavePixService: ChavePixService
 ): RegistraChavePixServiceGrpc.RegistraChavePixServiceImplBase() {
     private val logger = LoggerFactory.getLogger(RegistraChavePixEndpoint::class.java)
 
-    override fun registraChavePix(request: ChavePixRequest?, responseObserver: StreamObserver<ChavePixResponse>?) {
+    override fun registraChavePix(
+        request: ChavePixRequest,
+        responseObserver: StreamObserver<ChavePixResponse>
+    ) {
+        // faz algumas validações, incluso se cliente já possui chave cadastrada
+        val novaChavePix = request.toChavePix(validador)
 
-        val novaChavePix = request?.toChavePix(validador)
+        // retorna os dados do cliente e instituicao
+        val cliente = itauService.consultaCliente(novaChavePix.clientId)
 
-        // verifica se cliente existe no ERP Itaú
-        logger.info("Consultando ClientId ${ofuscaUuid(novaChavePix?.clientId)} no ERP Itaú.")
-        val itauErpResponse = novaChavePix?.let { itauErpClient.consultaCliente(it.clientId) }
+        // verifica se já existe a instituição e o cliente e salva se não existe
+        instituicaoService.validaESalva(cliente?.instituicao)
+        clienteService.validaESalva(cliente)
 
-        if (itauErpResponse != null) {
-            if (itauErpResponse.status == HttpStatus.NOT_FOUND) {
-                logger.warn("ClientId ${ofuscaUuid(novaChavePix.clientId)} não encontrado no ERP Itaú.")
-                val error = Status.NOT_FOUND
-                    .withDescription("Cliente não encontrado no ERP Itaú.")
-                    .asRuntimeException()
-
-                responseObserver?.onError(error)
-                return
-            }
-        }
-        logger.info("ClientId ${novaChavePix?.let { ofuscaUuid(it.clientId) }} encontrado no ERP Itaú.")
-
-        //salva instituicao no banco de dados
-        val cliente = itauErpResponse?.body()?.toModel() ?: throw IllegalArgumentException()
-        if (!instituicaoRepository.existsById(cliente.instituicao.ispb)) {
-            instituicaoRepository.save(cliente.instituicao)
-            logger.info("Nova Instituicao (${cliente.instituicao.nome}) inserida na base de dados.")
-        }
-
-        //salva cliente no banco de dados
-        if (!clienteRepository.existsById(cliente.id)) {
-            clienteRepository.save(cliente)
-            logger.info("ClientId ${ofuscaUuid(novaChavePix.clientId)} inserido na base de dados.")
-        }
-
-        //salva Chave Pix
-        chavePixRepository.save(novaChavePix)
-        logger.info("PixId gerado com sucesso para o ClientId ${ofuscaUuid(novaChavePix.clientId)}!")
+        // grava a Chave Pix
+        chavePixService.validaESalva(novaChavePix)
 
         val response = ChavePixResponse.newBuilder()
             .setPixId(novaChavePix.pixId)
             .setIdCliente(novaChavePix.clientId)
             .build()
 
-        responseObserver?.onNext(response)
-        responseObserver?.onCompleted()
+        responseObserver.onNext(response)
+        responseObserver.onCompleted()
 
     }
 

@@ -35,8 +35,8 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect:${kotlinVersion}")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:${kotlinVersion}")
     implementation("io.micronaut:micronaut-validation")
-    // https://mvnrepository.com/artifact/org.hibernate/hibernate-validator
-    implementation group: 'org.hibernate', name: 'hibernate-validator', version: '7.0.1.Final'
+    implementation ("org.hibernate:hibernate-validator:7.0.1.Final")
+    implementation("io.micronaut.xml:micronaut-jackson-xml")
 
     runtimeOnly("ch.qos.logback:logback-classic")
     runtimeOnly("mysql:mysql-connector-java")

@@ -12,19 +12,15 @@ import javax.validation.constraints.NotNull
 @Entity
 @Introspected
 class Cliente(
-
     @Id
     val id: String,
 
-    @field: NotBlank
-    @field: Column(nullable = false)
+    @field: NotBlank @field: Column(nullable = false)
     val nome: String,
 
-    @field: NotBlank
-    @field: Column(nullable = false, unique = true)
+    @field: NotBlank @field: Column(nullable = false, unique = true)
     val cpf: String,
 
-    @field: NotNull
-    @ManyToOne
+    @field: NotNull @ManyToOne
     val instituicao: Instituicao
 )

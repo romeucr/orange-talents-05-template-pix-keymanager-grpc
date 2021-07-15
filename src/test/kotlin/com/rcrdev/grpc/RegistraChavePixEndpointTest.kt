@@ -34,6 +34,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.mockito.Mockito
+import javax.validation.Validator
 
 @MicronautTest(transactional = false)
 internal class RegistraChavePixEndpointTest(
@@ -41,7 +42,8 @@ internal class RegistraChavePixEndpointTest(
     private val clienteRepository: ClienteRepository,
     private val instituicaoRepository: InstituicaoRepository,
     private val itauErpClient: ItauErpClient,
-    private val grpcClient: RegistraChavePixServiceBlockingStub
+    private val grpcClient: RegistraChavePixServiceBlockingStub,
+    private val validador: Validator
 ) {
 
     private lateinit var instituicaoResponse: InstituicaoResponse
@@ -62,8 +64,8 @@ internal class RegistraChavePixEndpointTest(
             "Fat Mike", "39913256089", instituicaoResponse
         )
 
-        instituicao = instituicaoResponse.toModel()
-        cliente = clienteResponse.toModel()
+        instituicao = instituicaoResponse.toModel(validador)
+        cliente = clienteResponse.toModel(validador)
 
         instituicaoRepository.save(instituicao)
         clienteRepository.save(cliente)

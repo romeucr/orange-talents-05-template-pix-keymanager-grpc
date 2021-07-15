@@ -3,8 +3,9 @@ package com.rcrdev.cliente
 import com.rcrdev.instituicao.InstituicaoResponse
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
+import javax.validation.Validator
 
-internal class ClienteResponseTest {
+internal class ClienteResponseTest(private val validador: Validator) {
 
     @Test
     fun `deve converter ClienteResponse em modelo`() {
@@ -13,7 +14,7 @@ internal class ClienteResponseTest {
         val cliResponse = ClienteResponse("abcd-1234", "Romeu", "11122233344", instResponse)
 
         // AÇÃO
-        val clienteModelo = cliResponse.toModel()
+        val clienteModelo = cliResponse.toModel(validador)
 
         // VALIDAÇÃO
         Assertions.assertEquals(cliResponse.id, clienteModelo.id)

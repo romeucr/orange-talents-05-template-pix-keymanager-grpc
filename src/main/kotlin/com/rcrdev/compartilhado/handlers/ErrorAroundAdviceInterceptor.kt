@@ -1,5 +1,6 @@
 package com.rcrdev.compartilhado.handlers
 
+import com.rcrdev.itau.exceptions.ErpItauClientNotFoundException
 import io.grpc.Status
 import io.grpc.stub.StreamObserver
 import io.micronaut.aop.InterceptorBean
@@ -33,6 +34,10 @@ class ErrorAroundAdviceInterceptor : MethodInterceptor<Any, Any> {
                 is HttpClientException -> Status.ABORTED
                     .withCause(ex)
                     .withDescription("Não foi possível validar o cliente no ERP Itaú.")
+
+                is ErpItauClientNotFoundException -> Status.NOT_FOUND
+                    .withCause(ex)
+                    .withDescription(ex.message)
 
                 else -> Status.UNKNOWN
                     .withCause(ex)
