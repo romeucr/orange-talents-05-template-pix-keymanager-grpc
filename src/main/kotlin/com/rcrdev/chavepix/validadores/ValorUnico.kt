@@ -16,6 +16,7 @@ import kotlin.annotation.AnnotationTarget.FIELD
 @Constraint(validatedBy = [ValorUnicoValidador::class])
 annotation class ValorUnico(
     val message: String = "Já existe Chave Pix gerada para o valor informado.",
+    val campo: String = ""
 )
 
 @Singleton
