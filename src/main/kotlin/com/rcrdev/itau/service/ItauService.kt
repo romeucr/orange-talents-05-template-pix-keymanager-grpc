@@ -1,8 +1,8 @@
-package com.rcrdev.itau
+package com.rcrdev.itau.service
 
 import com.rcrdev.cliente.Cliente
-import com.rcrdev.compartilhado.handlers.ErrorAroundAdvice
 import com.rcrdev.compartilhado.utils.ofuscaUuid
+import com.rcrdev.itau.ItauErpClient
 import com.rcrdev.itau.exceptions.ErpItauClientNotFoundException
 import io.micronaut.http.HttpStatus
 import io.micronaut.validation.Validated
@@ -26,7 +26,7 @@ class ItauService(
 
         if (erpResponse.status == HttpStatus.NOT_FOUND) {
             logger.warn("ClientId ${ofuscaUuid(clientId)} não encontrado no ERP Itaú.")
-            throw ErpItauClientNotFoundException("Cliente não encontrado no ERP Itau.")
+            throw ErpItauClientNotFoundException("Cliente não encontrado no ERP Itaú.")
         }
         logger.info("ClientId ${ofuscaUuid(clientId)} encontrado no ERP Itaú.")
 

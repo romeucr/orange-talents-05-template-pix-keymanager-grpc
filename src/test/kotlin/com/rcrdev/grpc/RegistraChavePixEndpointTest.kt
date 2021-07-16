@@ -353,16 +353,30 @@ internal class RegistraChavePixEndpointTest(
     @Test
     fun `deve cadastrar nova Chave Pix`() {
         // CENÁRIO
-        Mockito.`when`(itauErpClient.consultaCliente("c56dfef4-7901-44fb-84e2-a2cefb157890"))
-            .thenReturn(HttpResponse.ok(clienteResponse))
+        val  instResp = InstituicaoResponse(123L, "ITAU")
+
+        val cliResp = ClienteResponse(
+            id = "c56dfef4-8002-44fb-85e3-a2cefb159999",
+            "Patolino", "95094701045", instResp
+        )
+
+        val newPixRequest = ChavePixRequest.newBuilder()
+            .setIdCliente("c56dfef4-8002-44fb-85e3-a2cefb159999")
+            .setTipoChave(TipoChave.CPF)
+            .setChave("95094701045")
+            .setTipoConta(TipoConta.CONTA_CORRENTE)
+            .build()
+
+        Mockito.`when`(itauErpClient.consultaCliente("c56dfef4-8002-44fb-85e3-a2cefb159999"))
+            .thenReturn(HttpResponse.ok(cliResp))
 
         // AÇÃO
-        val response = grpcClient.registraChavePix(chavePixRequestValida)
+        val response = grpcClient.registraChavePix(newPixRequest)
 
         // VALIDAÇÃO
         with(response) {
-            assertNotNull(idCliente)
-            assertNotNull(pixId)
+//            assertNotNull(idCliente)
+//            assertNotNull(pixId)
             assertTrue(chavePixRepository.existsByPixId(pixId))
         }
 

@@ -1,5 +1,6 @@
 package com.rcrdev.compartilhado.handlers
 
+import com.rcrdev.chavepix.exceptions.ChavePixNotFoundException
 import com.rcrdev.itau.exceptions.ErpItauClientNotFoundException
 import io.grpc.Status
 import io.grpc.stub.StreamObserver
@@ -17,12 +18,13 @@ class ErrorAroundAdviceInterceptor : MethodInterceptor<Any, Any> {
         try {
             context.proceed()
         } catch (ex: Exception) {
-            //segundo elemento que recebe o método registraPixId da classe ChavePixGrpcEndpoint
+            // segundo elemento que recebe o método registraPixId da classe ChavePixGrpcEndpoint
+            // para poder retornar o responseObserver(response gRPC)
             val responseObserver = context.parameterValues[1] as StreamObserver<*>
 
-            val status = when(ex) {
+            val status = when (ex) {
                 is ConstraintViolationException ->
-                    if (ex.message!!.contains("já possui um PixId")) {
+                    if (ex.message!!.contains("Já existe Chave Pix gerada para o valor informado.")) {
                         Status.ALREADY_EXISTS
                             .withCause(ex)
                             .withDescription(ex.message)
@@ -35,7 +37,8 @@ class ErrorAroundAdviceInterceptor : MethodInterceptor<Any, Any> {
                     .withCause(ex)
                     .withDescription("Não foi possível validar o cliente no ERP Itaú.")
 
-                is ErpItauClientNotFoundException -> Status.NOT_FOUND
+                is ErpItauClientNotFoundException,
+                is ChavePixNotFoundException -> Status.NOT_FOUND
                     .withCause(ex)
                     .withDescription(ex.message)
 

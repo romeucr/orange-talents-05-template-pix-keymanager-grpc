@@ -1,5 +1,7 @@
-package com.rcrdev.cliente
+package com.rcrdev.cliente.service
 
+import com.rcrdev.cliente.Cliente
+import com.rcrdev.cliente.ClienteRepository
 import com.rcrdev.compartilhado.utils.ofuscaUuid
 import io.micronaut.validation.Validated
 import org.slf4j.LoggerFactory

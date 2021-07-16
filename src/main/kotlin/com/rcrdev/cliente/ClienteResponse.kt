@@ -1,5 +1,6 @@
 package com.rcrdev.cliente
 
+import com.rcrdev.compartilhado.handlers.ErrorAroundAdvice
 import com.rcrdev.instituicao.InstituicaoResponse
 import io.micronaut.core.annotation.Introspected
 import javax.validation.ConstraintViolationException

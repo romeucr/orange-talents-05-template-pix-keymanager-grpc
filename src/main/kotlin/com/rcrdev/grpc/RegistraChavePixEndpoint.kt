@@ -3,12 +3,12 @@ package com.rcrdev.grpc
 import com.rcrdev.ChavePixRequest
 import com.rcrdev.ChavePixResponse
 import com.rcrdev.RegistraChavePixServiceGrpc
-import com.rcrdev.chavepix.ChavePixService
-import com.rcrdev.cliente.ClienteService
+import com.rcrdev.chavepix.service.ChavePixService
+import com.rcrdev.cliente.service.ClienteService
 import com.rcrdev.compartilhado.handlers.ErrorAroundAdvice
 import com.rcrdev.grpc.extensoes.toChavePix
-import com.rcrdev.instituicao.InstituicaoService
-import com.rcrdev.itau.ItauService
+import com.rcrdev.instituicao.service.InstituicaoService
+import com.rcrdev.itau.service.ItauService
 import io.grpc.stub.StreamObserver
 import io.micronaut.validation.Validated
 import org.slf4j.LoggerFactory

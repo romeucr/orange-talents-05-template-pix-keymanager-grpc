@@ -1,6 +1,7 @@
-package com.rcrdev.instituicao
+package com.rcrdev.instituicao.service
 
-import com.rcrdev.grpc.RegistraChavePixEndpoint
+import com.rcrdev.instituicao.Instituicao
+import com.rcrdev.instituicao.InstituicaoRepository
 import io.micronaut.validation.Validated
 import org.slf4j.LoggerFactory
 import javax.inject.Singleton
