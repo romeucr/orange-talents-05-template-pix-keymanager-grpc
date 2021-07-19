@@ -9,15 +9,17 @@ import javax.validation.constraints.NotBlank
 data class InstituicaoResponse(
 
     @field: NotBlank
-    val ispb: Long,
+    val ispb: Int,
 
     @field: NotBlank
     val nome: String
-
 ) {
-    fun toModel(validador: Validator): Instituicao {
 
-        val instituicao = Instituicao(ispb, nome)
+    fun toModel(validador: Validator): Instituicao {
+        val instituicao = Instituicao(
+            ispb = this.ispb,
+            nome = this.nome
+        )
 
         val erros = validador.validate(instituicao)
         if (erros.isNotEmpty()) {

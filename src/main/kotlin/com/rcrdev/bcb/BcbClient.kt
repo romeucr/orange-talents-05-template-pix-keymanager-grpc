@@ -8,7 +8,7 @@ import io.micronaut.http.client.annotation.Client
 @Client("http://localhost:8082/api/v1/pix/keys")
 interface BcbClient {
 
-    @Post // tem que enviar o corpo
+    @Post
     @Produces(MediaType.APPLICATION_XML)
     fun createChavePix(@Body createPixKeyRequest: CreatePixKeyRequest): HttpResponse<CreatePixKeyResponse>
 

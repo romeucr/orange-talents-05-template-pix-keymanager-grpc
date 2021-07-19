@@ -24,6 +24,7 @@ class BcbService(private val bcbClient: BcbClient) {
             accountNumber = "332211",
             accountType = AccountType.CACC,
         )
+
         val createPKR = CreatePixKeyRequest(
             keyType = KeyType.EMAIL,
             key = "ander@email.com",
@@ -32,10 +33,6 @@ class BcbService(private val bcbClient: BcbClient) {
         )
 
         return bcbClient.createChavePix(createPKR)
-
-
-
-
     }
 
     fun deletaChavePix() {

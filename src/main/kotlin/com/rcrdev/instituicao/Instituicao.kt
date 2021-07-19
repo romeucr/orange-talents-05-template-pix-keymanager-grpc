@@ -3,6 +3,7 @@ package com.rcrdev.instituicao
 import io.micronaut.core.annotation.Introspected
 import javax.persistence.Column
 import javax.persistence.Entity
+import javax.persistence.GeneratedValue
 import javax.persistence.Id
 import javax.validation.constraints.NotBlank
 
@@ -11,9 +12,12 @@ import javax.validation.constraints.NotBlank
 class Instituicao(
 
     @Id
-    val ispb: Long,
+    val ispb: Int,
 
     @field: NotBlank
     @field: Column(nullable = false)
-    val nome: String
-)
+    val nome: String,
+
+) {
+
+}

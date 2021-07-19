@@ -11,10 +11,8 @@ import com.rcrdev.chavepix.ChavePixRepository
 import com.rcrdev.chavepix.tipos.TipoChave.CPF
 import com.rcrdev.chavepix.tipos.TipoConta.CONTA_CORRENTE
 import com.rcrdev.cliente.Cliente
-import com.rcrdev.cliente.ClienteRepository
 import com.rcrdev.cliente.ClienteResponse
 import com.rcrdev.instituicao.Instituicao
-import com.rcrdev.instituicao.InstituicaoRepository
 import com.rcrdev.instituicao.InstituicaoResponse
 import com.rcrdev.itau.ItauErpClient
 import io.grpc.ManagedChannel
@@ -39,8 +37,6 @@ import javax.validation.Validator
 @MicronautTest(transactional = false)
 internal class RegistraChavePixEndpointTest(
     private val chavePixRepository: ChavePixRepository,
-    private val clienteRepository: ClienteRepository,
-    private val instituicaoRepository: InstituicaoRepository,
     private val itauErpClient: ItauErpClient,
     private val grpcClient: RegistraChavePixServiceBlockingStub,
     private val validador: Validator
@@ -55,27 +51,7 @@ internal class RegistraChavePixEndpointTest(
     @BeforeEach
     fun setup() {
         chavePixRepository.deleteAll()
-        clienteRepository.deleteAll()
-        instituicaoRepository.deleteAll()
 
-        instituicaoResponse = InstituicaoResponse(123L, "ITAU")
-        clienteResponse = ClienteResponse(
-            id = "c56dfef4-7901-44fb-84e2-a2cefb157890",
-            "Fat Mike", "39913256089", instituicaoResponse
-        )
-
-        instituicao = instituicaoResponse.toModel(validador)
-        cliente = clienteResponse.toModel(validador)
-
-        instituicaoRepository.save(instituicao)
-        clienteRepository.save(cliente)
-
-        chavePixRequestValida = ChavePixRequest.newBuilder()
-            .setIdCliente("c56dfef4-7901-44fb-84e2-a2cefb157890")
-            .setTipoChave(TipoChave.EMAIL)
-            .setChave("email@email.com")
-            .setTipoConta(TipoConta.CONTA_CORRENTE)
-            .build()
     }
 
     @Test

@@ -1,7 +1,7 @@
 package com.rcrdev.itau.service
 
-import com.rcrdev.cliente.Cliente
 import com.rcrdev.compartilhado.utils.ofuscaUuid
+import com.rcrdev.conta.Conta
 import com.rcrdev.itau.ItauErpClient
 import com.rcrdev.itau.exceptions.ErpItauClientNotFoundException
 import io.micronaut.http.HttpStatus
@@ -12,28 +12,25 @@ import javax.validation.Validator
 
 @Validated
 @Singleton
-//@ErrorAroundAdvice
 class ItauService(
     private val itauErpClient: ItauErpClient,
     private val validador: Validator
 ) {
     private val logger = LoggerFactory.getLogger(ItauService::class.java)
 
-    fun consultaCliente(clientId: String): Cliente? {
-        logger.info("Consultando ERP Itaú. ClientId: ${ofuscaUuid(clientId)}.")
-        // verifica se cliente existe no ERP Itaú. Testar quando Itau estiver offline (usar try/catch ???)
-        val erpResponse = itauErpClient.consultaCliente(clientId)
+    fun consultaContaCliente(clientId: String, tipo: String): Conta? {
+        logger.info("Consultando ERP Itaú. Conta $tipo - ClientId: ${ofuscaUuid(clientId)}. Conta: $tipo")
+        val erpContaResponse = itauErpClient.consultaConta(clientId, tipo)
 
-        if (erpResponse.status == HttpStatus.NOT_FOUND) {
-            logger.warn("ClientId ${ofuscaUuid(clientId)} não encontrado no ERP Itaú.")
+        if (erpContaResponse.status == HttpStatus.NOT_FOUND) {
+            logger.warn("Conta $tipo - ClientId ${ofuscaUuid(clientId)} não encontrados no ERP Itaú.")
             throw ErpItauClientNotFoundException("Cliente não encontrado no ERP Itaú.")
         }
-        logger.info("ClientId ${ofuscaUuid(clientId)} encontrado no ERP Itaú.")
+        logger.info("Conta $tipo - ClientId ${ofuscaUuid(clientId)} encontrados no ERP Itaú.")
 
-        return erpResponse.body()?.toModel(validador)
-    }
+        println(erpContaResponse.body())
 
-    fun consultaContaCliente() {
-
+        val conta = erpContaResponse.body()?.toModel(validador)
+        return conta
     }
 }

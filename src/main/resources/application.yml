@@ -24,3 +24,7 @@ jpa:
         hbm2ddl:
           auto: update
         show_sql: true
+
+itau:
+  erp:
+    url: http://localhost:9091/api/v1/clientes

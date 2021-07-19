@@ -4,10 +4,10 @@ import com.rcrdev.ChavePixRequest
 import com.rcrdev.ChavePixResponse
 import com.rcrdev.RegistraChavePixServiceGrpc
 import com.rcrdev.chavepix.service.ChavePixService
-import com.rcrdev.cliente.service.ClienteService
 import com.rcrdev.compartilhado.handlers.ErrorAroundAdvice
+import com.rcrdev.conta.service.ContaService
+import com.rcrdev.conta.service.InstituicaoService
 import com.rcrdev.grpc.extensoes.toChavePix
-import com.rcrdev.instituicao.service.InstituicaoService
 import com.rcrdev.itau.service.ItauService
 import io.grpc.stub.StreamObserver
 import io.micronaut.validation.Validated
@@ -21,27 +21,20 @@ import javax.validation.Validator
 class RegistraChavePixEndpoint(
     private val validador: Validator,
     private val itauService: ItauService,
-    private val instituicaoService: InstituicaoService,
-    private val clienteService: ClienteService,
-    private val chavePixService: ChavePixService
-): RegistraChavePixServiceGrpc.RegistraChavePixServiceImplBase() {
+    private val contaService: ContaService,
+    private val chavePixService: ChavePixService,
+
+    ) : RegistraChavePixServiceGrpc.RegistraChavePixServiceImplBase() {
     private val logger = LoggerFactory.getLogger(RegistraChavePixEndpoint::class.java)
 
-    override fun registraChavePix(
-        request: ChavePixRequest,
-        responseObserver: StreamObserver<ChavePixResponse>
+    override fun registraChavePix(request: ChavePixRequest, responseObserver: StreamObserver<ChavePixResponse>
     ) {
-        // faz algumas validações, incluso se cliente já possui chave cadastrada
         val novaChavePix = request.toChavePix(validador)
 
-        // retorna os dados do cliente e instituicao
-        val cliente = itauService.consultaCliente(novaChavePix.clientId)
+        val contaCliente = itauService.consultaContaCliente(novaChavePix.clientId, novaChavePix.tipoConta.name)
 
-        // verifica se já existe a instituição e o cliente e salva se não existe
-        instituicaoService.validaESalva(cliente?.instituicao)
-        clienteService.validaESalva(cliente)
+        contaService.validaESalva(contaCliente)
 
-        // grava a Chave Pix
         chavePixService.validaESalva(novaChavePix)
 
         val response = ChavePixResponse.newBuilder()
@@ -51,7 +44,6 @@ class RegistraChavePixEndpoint(
 
         responseObserver.onNext(response)
         responseObserver.onCompleted()
-
     }
 
 }
