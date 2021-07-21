@@ -5,14 +5,18 @@ import com.rcrdev.RegistraChavePixServiceGrpc
 import com.rcrdev.RegistraChavePixServiceGrpc.RegistraChavePixServiceBlockingStub
 import com.rcrdev.TipoChave
 import com.rcrdev.TipoConta
-import com.rcrdev.TipoConta.CONTA_POUPANCA
 import com.rcrdev.chavepix.ChavePix
 import com.rcrdev.chavepix.ChavePixRepository
 import com.rcrdev.chavepix.tipos.TipoChave.CPF
 import com.rcrdev.chavepix.tipos.TipoConta.CONTA_CORRENTE
 import com.rcrdev.cliente.Cliente
+import com.rcrdev.cliente.ClienteRepository
 import com.rcrdev.cliente.ClienteResponse
+import com.rcrdev.conta.Conta
+import com.rcrdev.conta.ContaRepository
+import com.rcrdev.conta.ContaResponse
 import com.rcrdev.instituicao.Instituicao
+import com.rcrdev.instituicao.InstituicaoRepository
 import com.rcrdev.instituicao.InstituicaoResponse
 import com.rcrdev.itau.ItauErpClient
 import io.grpc.ManagedChannel
@@ -23,7 +27,6 @@ import io.micronaut.context.annotation.Factory
 import io.micronaut.grpc.annotation.GrpcChannel
 import io.micronaut.grpc.server.GrpcServerChannel
 import io.micronaut.http.HttpResponse
-import io.micronaut.http.HttpStatus
 import io.micronaut.http.client.exceptions.HttpClientException
 import io.micronaut.test.annotation.MockBean
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest
@@ -32,36 +35,87 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.mockito.Mockito
+import org.mockito.Mockito.`when`
+import org.mockito.Mockito.mock
+import javax.inject.Inject
 import javax.validation.Validator
 
 @MicronautTest(transactional = false)
 internal class RegistraChavePixEndpointTest(
     private val chavePixRepository: ChavePixRepository,
-    private val itauErpClient: ItauErpClient,
+    private val instituicaoRepository: InstituicaoRepository,
+    private val clienteRepository: ClienteRepository,
+    private val contaRepository: ContaRepository,
     private val grpcClient: RegistraChavePixServiceBlockingStub,
     private val validador: Validator
 ) {
 
-    private lateinit var instituicaoResponse: InstituicaoResponse
-    private lateinit var clienteResponse: ClienteResponse
+    private lateinit var instResponse: InstituicaoResponse
+    private lateinit var cliResponse: ClienteResponse
+    private lateinit var contaResponse: ContaResponse
+
     private lateinit var instituicao: Instituicao
     private lateinit var cliente: Cliente
-    private lateinit var chavePixRequestValida: ChavePixRequest
+    private lateinit var conta: Conta
+
+    private lateinit var chavePixRequest: ChavePixRequest
+
+    @Inject
+    lateinit var itauErpClient: ItauErpClient
+
+    // Conexão com o ERP Itaú
+    @MockBean(ItauErpClient::class)
+    fun erpItauMock(): ItauErpClient {
+        return mock(ItauErpClient::class.java)
+
+    }
 
     @BeforeEach
     fun setup() {
         chavePixRepository.deleteAll()
+        contaRepository.deleteAll() // manter a ordem de delete por causa dos relacionamentos
+        clienteRepository.deleteAll()
+        instituicaoRepository.deleteAll()
+
+        instResponse = InstituicaoResponse(12345, "NULLBANK")
+        cliResponse = ClienteResponse("c56dfef4-8002-44fb-85e3-a2cefb159999", "Patolino De Souza", "95094701045")
+        contaResponse = ContaResponse(CONTA_CORRENTE.name, instResponse, "0001", "350176", cliResponse)
+
+        instituicao = instResponse.toModel(validador)
+        cliente = cliResponse.toModel(validador)
+        conta = contaResponse.toModel(validador)
+
+        chavePixRequest = ChavePixRequest.newBuilder()
+            .setIdCliente("c56dfef4-7901-44fb-84e2-a2cefb157890")
+            .setTipoChave(TipoChave.CPF)
+            .setChave("24311919077")
+            .setTipoConta(TipoConta.CONTA_CORRENTE)
+            .build()
+    }
+
+    @Test
+    fun `deve cadastrar nova Chave Pix`() {
+        // CENÁRIO
+        `when`(itauErpClient.consultaContaErp("c56dfef4-7901-44fb-84e2-a2cefb157890", CONTA_CORRENTE.name))
+            .thenReturn(HttpResponse.ok(contaResponse))
+
+        // AÇÃO
+        val response = grpcClient.registraChavePix(chavePixRequest)
+
+        // VALIDAÇÃO
+        with(response) {
+            assertNotNull(idCliente)
+            assertNotNull(pixId)
+            assertTrue(chavePixRepository.existsByPixId(pixId))
+        }
 
     }
 
     @Test
-    fun `deve retornar ALREADY_EXISTS quando clienteId ja possuir ChavePix cadastrada`() {
+    fun `deve retornar ALREADY_EXISTS quando cliente ja possuir ChavePix cadastrada`() {
         // CENÁRIO
-        Mockito.`when`(itauErpClient.consultaCliente("c56dfef4-7901-44fb-84e2-a2cefb157890"))
-            .thenReturn(HttpResponse.ok(clienteResponse))
-
-        chavePixRepository.save(ChavePix("c56dfef4-7901-44fb-84e2-a2cefb157890",
-            CPF,"39913256089", CONTA_CORRENTE))
+        chavePixRepository
+            .save(ChavePix("c56dfef4-7901-44fb-84e2-a2cefb157890", CPF, "39913256089", CONTA_CORRENTE))
 
         // AÇÃO
         val error = assertThrows<StatusRuntimeException> {
@@ -69,8 +123,8 @@ internal class RegistraChavePixEndpointTest(
                 ChavePixRequest.newBuilder()
                     .setIdCliente("c56dfef4-7901-44fb-84e2-a2cefb157890")
                     .setTipoChave(TipoChave.CPF)
-                    .setChave("31982606800")
-                    .setTipoConta(CONTA_POUPANCA)
+                    .setChave("39913256089")
+                    .setTipoConta(TipoConta.CONTA_CORRENTE)
                     .build()
             )
         }
@@ -80,98 +134,115 @@ internal class RegistraChavePixEndpointTest(
     }
 
     @Test
+    fun `deve cadastrar uma nova Instituicao`() {
+        // CENÁRIO
+        `when`(itauErpClient.consultaContaErp("c56dfef4-7901-44fb-84e2-a2cefb157890", CONTA_CORRENTE.name))
+            .thenReturn(HttpResponse.ok(contaResponse))
+
+        val novaInstituicao = contaResponse.instituicao.toModel(validador)
+
+        // AÇÃO
+        grpcClient.registraChavePix(chavePixRequest)
+
+        // VALIDAÇÃO
+        with(novaInstituicao) {
+            assertTrue(instituicaoRepository.existsById(ispb))
+            assertEquals(12345, ispb)
+            assertEquals("NULLBANK", nome)
+        }
+    }
+
+    @Test
+    fun `deve cadastrar um novo Cliente`() {
+        // CENÁRIO
+        `when`(itauErpClient.consultaContaErp("c56dfef4-7901-44fb-84e2-a2cefb157890", CONTA_CORRENTE.name))
+            .thenReturn(HttpResponse.ok(contaResponse))
+
+        val novoCliente = contaResponse.titular.toModel(validador)
+
+        // AÇÃO
+        grpcClient.registraChavePix(chavePixRequest)
+
+        // VALIDAÇÃO
+        with(novoCliente) {
+            assertTrue(clienteRepository.existsById(id))
+            assertEquals("c56dfef4-8002-44fb-85e3-a2cefb159999", id)
+            assertEquals("Patolino De Souza", nome)
+            assertEquals("95094701045", cpf)
+        }
+    }
+
+    @Test
+    fun `deve cadastrar uma nova Conta`() {
+        // CENÁRIO
+        `when`(itauErpClient.consultaContaErp("c56dfef4-7901-44fb-84e2-a2cefb157890", CONTA_CORRENTE.name))
+            .thenReturn(HttpResponse.ok(contaResponse))
+
+        val novaInstituicao = contaResponse.instituicao.toModel(validador)
+        val novoCliente = contaResponse.titular.toModel(validador)
+        val novaConta = contaResponse.toModel(validador)
+
+        // AÇÃO
+        grpcClient.registraChavePix(chavePixRequest)
+
+        // VALIDAÇÃO
+        with(novaConta) {
+            assertTrue(contaRepository.existsByAgenciaAndNumero(agencia, numero))
+            assertEquals(CONTA_CORRENTE, tipoConta)
+            assertEquals(conta.instituicao.ispb, instituicao.ispb)
+            assertEquals("0001", agencia)
+            assertEquals("350176", numero)
+            assertEquals(conta.titular.id, titular.id)
+        }
+    }
+
+    @Test
     fun `deve retornar ABORTED quando ERP Itau indisponivel`() {
         // CENÁRIO
-        Mockito.`when`(itauErpClient.consultaCliente("c56dfef4-7901-44fb-84e2-a2cefb157890"))
+        `when`(itauErpClient.consultaContaErp("c56dfef4-7901-44fb-84e2-a2cefb157890", CONTA_CORRENTE.name))
             .thenThrow(HttpClientException("Erro de conexão com ERP ITAU"))
 
         // AÇÃO
-        // deixado assim porque não consegui identificar porque ele diz que foi a Illegal e não a RunTime
         val error = assertThrows<StatusRuntimeException> {
             grpcClient.registraChavePix(
                 ChavePixRequest.newBuilder()
                     .setIdCliente("c56dfef4-7901-44fb-84e2-a2cefb157890")
                     .setTipoChave(TipoChave.CPF)
-                    .setChave("31982606800")
-                    .setTipoConta(CONTA_POUPANCA)
-                    .build()
-            )
-        }
+                    .setChave("24311919077")
+                    .setTipoConta(TipoConta.CONTA_CORRENTE)
+                    .build()) }
 
         // VALIDAÇÃO
         assertEquals(Status.ABORTED.code, error.status.code)
     }
 
     @Test
-    fun `deve retornar INVALID_ARGUMENT quando TipoChave invalida BLANK`() {
-        // CENÁRIO
-        val instResponse = InstituicaoResponse(1L, "BRADESCO")
-        val cliResponse = ClienteResponse(id = "c78dfef5-8012-55fb-95e1-a3cefb268901",
-            "Cliente ChavePix-CPF inválido", "31982806877", instResponse)
-
-        Mockito.`when`(itauErpClient.consultaCliente("bc35591d-b547-4151-a325-4a9d2cd19614"))
-            .thenReturn(HttpResponse.ok(cliResponse))
-
-        // AÇÃO         // VALIDAÇÃO
-        // deixado assim porque não consegui identificar porque ele diz que foi a Illegal e não a RunTime
-        assertThrows<IllegalArgumentException> {
-            grpcClient.registraChavePix(
-                ChavePixRequest.newBuilder()
-                    .setIdCliente("bc35591d-b547-4151-a325-4a9d2cd19614")
-                    .setTipoChave(TipoChave.valueOf(""))
-                    .setChave("31982806877")
-                    .setTipoConta(CONTA_POUPANCA)
-                    .build()
-            )
-        }
-    }
-
-    @Test
-    fun `deve retornar INVALID_ARGUMENT quando ChavePix-CPF invalida NULLBLANK`() {
-        // CENÁRIO
-        val instResponse = InstituicaoResponse(1L, "BRADESCO")
-        val cliResponse = ClienteResponse(id = "c78dfef5-8012-55fb-95e1-a3cefb268901",
-            "Cliente ChavePix-CPF inválido", "31982806877", instResponse)
-
-        Mockito.`when`(itauErpClient.consultaCliente("bc35591d-b547-4151-a325-4a9d2cd19614"))
-            .thenReturn(HttpResponse.ok(cliResponse))
-
+    fun `deve retornar INVALID_ARGUMENT quando ChavePix invalida (CPF - NOTBLANK)`() {
         // AÇÃO
         val error = assertThrows<StatusRuntimeException> {
             grpcClient.registraChavePix(
                 ChavePixRequest.newBuilder()
                     .setIdCliente("bc35591d-b547-4151-a325-4a9d2cd19614")
                     .setTipoChave(TipoChave.CPF)
-                    .setChave("31982806877")
-                    .setTipoConta(CONTA_POUPANCA)
-                    .build()
-            )
-        }
+                    .setChave("")
+                    .setTipoConta(TipoConta.CONTA_CORRENTE)
+                    .build()) }
 
         // VALIDAÇÃO
         assertEquals(Status.INVALID_ARGUMENT.code, error.status.code)
     }
 
     @Test
-    fun `deve retornar INVALID_ARGUMENT quando ChavePix-CPF invalida REGEX`() {
-        // CENÁRIO
-        val instResponse = InstituicaoResponse(1L, "BRADESCO")
-        val cliResponse = ClienteResponse(id = "c78dfef5-8012-55fb-95e1-a3cefb268901",
-            "Cliente ChavePix-CPF inválido", "319", instResponse)
-
-        Mockito.`when`(itauErpClient.consultaCliente("bc35591d-b547-4151-a325-4a9d2cd19614"))
-            .thenReturn(HttpResponse.ok(cliResponse))
-
+    fun `deve retornar INVALID_ARGUMENT quando ChavePix invalida (CPF - REGEX)`() {
         // AÇÃO
         val error = assertThrows<StatusRuntimeException> {
             grpcClient.registraChavePix(
                 ChavePixRequest.newBuilder()
                     .setIdCliente("bc35591d-b547-4151-a325-4a9d2cd19614")
                     .setTipoChave(TipoChave.CPF)
-                    .setChave("319")
-                    .setTipoConta(CONTA_POUPANCA)
-                    .build()
-            )
+                    .setChave("319") // REGEX: ^[0-9]{11}\$
+                    .setTipoConta(TipoConta.CONTA_POUPANCA)
+                    .build() )
         }
 
         // VALIDAÇÃO
@@ -179,33 +250,25 @@ internal class RegistraChavePixEndpointTest(
     }
 
     @Test
-    fun `deve retornar INVALID_ARGUMENT quando ChavePix-TELEFONE invalida REGEX`() {
-        // CENÁRIO
-        Mockito.`when`(itauErpClient.consultaCliente("c56dfef4-7901-44fb-84e2-a2cefb157890"))
-            .thenReturn(HttpResponse.ok(clienteResponse))
-
+    fun `deve retornar INVALID_ARGUMENT quando ChavePix invalida (CPF - HibernateValidator)`() {
         // AÇÃO
         val error = assertThrows<StatusRuntimeException> {
             grpcClient.registraChavePix(
                 ChavePixRequest.newBuilder()
-                    .setIdCliente("c56dfef4-7901-44fb-84e2-a2cefb157890")
-                    .setTipoChave(TipoChave.TELEFONE)
-                    .setChave("319123")
-                    .setTipoConta(CONTA_POUPANCA)
-                    .build()
-            )
+                    .setIdCliente("bc35591d-b547-4151-a325-4a9d2cd19614")
+                    .setTipoChave(TipoChave.CPF)
+                    .setChave("31982600000")
+                    .setTipoConta(TipoConta.CONTA_CORRENTE)
+                    .build())
         }
 
         // VALIDAÇÃO
         assertEquals(Status.INVALID_ARGUMENT.code, error.status.code)
     }
 
-    @Test
-    fun `deve retornar INVALID_ARGUMENT quando ChavePix-TELEFONE invalida NULLBLANK`() {
-        // CENÁRIO
-        Mockito.`when`(itauErpClient.consultaCliente("c56dfef4-7901-44fb-84e2-a2cefb157890"))
-            .thenReturn(HttpResponse.ok(clienteResponse))
 
+    @Test
+    fun `deve retornar INVALID_ARGUMENT quando ChavePix invalida (TELEFONE - NOTBLANK)`() {
         // AÇÃO
         val error = assertThrows<StatusRuntimeException> {
             grpcClient.registraChavePix(
@@ -213,9 +276,8 @@ internal class RegistraChavePixEndpointTest(
                     .setIdCliente("c56dfef4-7901-44fb-84e2-a2cefb157890")
                     .setTipoChave(TipoChave.TELEFONE)
                     .setChave("")
-                    .setTipoConta(CONTA_POUPANCA)
-                    .build()
-            )
+                    .setTipoConta(TipoConta.CONTA_CORRENTE)
+                    .build() )
         }
 
         // VALIDAÇÃO
@@ -223,11 +285,24 @@ internal class RegistraChavePixEndpointTest(
     }
 
     @Test
-    fun `deve retornar INVALID_ARGUMENT quando ChavePix-EMAIL invalida NULLBLANK`() {
-        // CENÁRIO
-        Mockito.`when`(itauErpClient.consultaCliente("c56dfef4-7901-44fb-84e2-a2cefb157890"))
-            .thenReturn(HttpResponse.ok(clienteResponse))
+    fun `deve retornar INVALID_ARGUMENT quando ChavePix invalida (TELEFONE - REGEX)`() {
+        // AÇÃO
+        val error = assertThrows<StatusRuntimeException> {
+            grpcClient.registraChavePix(
+                ChavePixRequest.newBuilder()
+                    .setIdCliente("c56dfef4-7901-44fb-84e2-a2cefb157890")
+                    .setTipoChave(TipoChave.TELEFONE)
+                    .setChave("-55319123") // REGEX: ^\+[1-9][0-9]\d{1,14}$
+                    .setTipoConta(TipoConta.CONTA_CORRENTE)
+                    .build() )
+        }
 
+        // VALIDAÇÃO
+        assertEquals(Status.INVALID_ARGUMENT.code, error.status.code)
+    }
+
+    @Test
+    fun `deve retornar INVALID_ARGUMENT quando ChavePix invalida (EMAIL NOTBLANK)`() {
         // AÇÃO
         val error = assertThrows<StatusRuntimeException> {
             grpcClient.registraChavePix(
@@ -235,9 +310,8 @@ internal class RegistraChavePixEndpointTest(
                     .setIdCliente("c56dfef4-7901-44fb-84e2-a2cefb157890")
                     .setTipoChave(TipoChave.EMAIL)
                     .setChave("")
-                    .setTipoConta(CONTA_POUPANCA)
-                    .build()
-            )
+                    .setTipoConta(TipoConta.CONTA_CORRENTE)
+                    .build() )
         }
 
         // VALIDAÇÃO
@@ -245,117 +319,56 @@ internal class RegistraChavePixEndpointTest(
     }
 
     @Test
-    fun `deve retornar NOT_FOUND quando clienteId nao encontrado no ERP ITAU`() {
+    fun `deve retornar INVALID_ARGUMENT quando ChavePix invalida (EMAIL HibernateValidator)`() {
+        // AÇÃO
+        val error = assertThrows<StatusRuntimeException> {
+            grpcClient.registraChavePix(
+                ChavePixRequest.newBuilder()
+                    .setIdCliente("c56dfef4-7901-44fb-84e2-a2cefb157890")
+                    .setTipoChave(TipoChave.EMAIL)
+                    .setChave("emailinvalido.com")
+                    .setTipoConta(TipoConta.CONTA_CORRENTE)
+                    .build() )
+        }
+
+        // VALIDAÇÃO
+        assertEquals(Status.INVALID_ARGUMENT.code, error.status.code)
+    }
+
+    @Test
+    fun `deve retornar NOT_FOUND quando Conta x Cliente nao encontrados no ERP ITAU`() {
         // CENÁRIO
-        Mockito.`when`(itauErpClient.consultaCliente("c56dfef4-7901-44fb-84e2-a2cefb157890")).thenReturn(HttpResponse.notFound())
+        `when`(itauErpClient.consultaContaErp("c56dfef4-7901-44fb-84e2-a2cefb157890", CONTA_CORRENTE.name))
+            .thenReturn(HttpResponse.notFound())
 
         // AÇÃO
         val error = assertThrows<StatusRuntimeException> {
-            grpcClient.registraChavePix(chavePixRequestValida)
+            grpcClient.registraChavePix(chavePixRequest)
         }
 
         // VALIDAÇÃO
         with(error) {
             assertEquals(Status.NOT_FOUND.code, status.code)
-            assertEquals("Cliente não encontrado no ERP Itaú.", status.description)
+            assertEquals("Conta x Cliente não encontrados no ERP Itaú.", status.description)
         }
     }
 
     @Test
-    fun `deve consultar clienteId no ERP Itau retornar detalhes e HTTP Status OK`() {
+    fun `deve retornar UNKNOWN quando lancada excecao nao prevista`() {
         // CENÁRIO
-        Mockito.`when`(itauErpClient.consultaCliente(cliente.id)).thenReturn(HttpResponse.ok(clienteResponse))
+        `when`(itauErpClient.consultaContaErp("", CONTA_CORRENTE.name))
+            .thenReturn(HttpResponse.notFound())
 
         // AÇÃO
-        val response = itauErpClient.consultaCliente(cliente.id)
-
-        // VALIDAÇÃO
-        assertEquals(HttpStatus.OK, response.status)
-        assertNotNull(response.body())
-        assertEquals(clienteResponse.id, response.body()!!.id)
-        assertEquals(clienteResponse.cpf, response.body()!!.cpf)
-        assertEquals(clienteResponse.instituicao, response.body()!!.instituicao)
-    }
-
-    @Test
-    fun `deve consultar clienteId no ERP Itau nao retornar detalhes e HTTP Status NOT_FOUND`() {
-        // CENÁRIO
-        Mockito.`when`(itauErpClient.consultaCliente(cliente.id)).thenReturn(HttpResponse.notFound())
-
-        // AÇÃO
-        val response = itauErpClient.consultaCliente(cliente.id)
-
-        // VALIDAÇÃO
-        assertEquals(HttpStatus.NOT_FOUND, response.status)
-        assertNull(response.body())
-    }
-
-    @Test
-    fun `deve cadastrar uma nova Instituicao`() {
-        // CENÁRIO
-        val novaInstituicaoResponse = InstituicaoResponse(99L, "BANCO DO BRASIL")
-        val novoClienteResponse = ClienteResponse(
-            id = "lkjsdu12-7901-44fb-84e2-aahudy72635dss",
-            "Outro Cliente", "999999999", novaInstituicaoResponse
-        )
-
-        Mockito.`when`(itauErpClient.consultaCliente("c56dfef4-7901-44fb-84e2-a2cefb157890"))
-            .thenReturn(HttpResponse.ok(novoClienteResponse))
-
-        // AÇÃO
-        grpcClient.registraChavePix(chavePixRequestValida)
-        val instGravada = instituicaoRepository.findById(novaInstituicaoResponse.ispb)
-
-        // VALIDAÇÃO
-        assertTrue(instituicaoRepository.existsById(novaInstituicaoResponse.ispb))
-        assertEquals("BANCO DO BRASIL", instGravada.get().nome)
-    }
-
-    @Test
-    fun `deve cadastrar um novo Cliente`() {
-        // CENÁRIO
-        Mockito.`when`(itauErpClient.consultaCliente("c56dfef4-7901-44fb-84e2-a2cefb157890"))
-            .thenReturn(HttpResponse.ok(clienteResponse))
-
-        // AÇÃO
-        val response = grpcClient.registraChavePix(chavePixRequestValida)
-
-        // VALIDAÇÃO
-        assertNotNull(response.idCliente)
-        assertNotNull(response.pixId)
-        assertTrue(clienteRepository.existsById(clienteResponse.id))
-    }
-
-    @Test
-    fun `deve cadastrar nova Chave Pix`() {
-        // CENÁRIO
-        val  instResp = InstituicaoResponse(123L, "ITAU")
-
-        val cliResp = ClienteResponse(
-            id = "c56dfef4-8002-44fb-85e3-a2cefb159999",
-            "Patolino", "95094701045", instResp
-        )
-
-        val newPixRequest = ChavePixRequest.newBuilder()
-            .setIdCliente("c56dfef4-8002-44fb-85e3-a2cefb159999")
-            .setTipoChave(TipoChave.CPF)
-            .setChave("95094701045")
-            .setTipoConta(TipoConta.CONTA_CORRENTE)
-            .build()
-
-        Mockito.`when`(itauErpClient.consultaCliente("c56dfef4-8002-44fb-85e3-a2cefb159999"))
-            .thenReturn(HttpResponse.ok(cliResp))
-
-        // AÇÃO
-        val response = grpcClient.registraChavePix(newPixRequest)
-
-        // VALIDAÇÃO
-        with(response) {
-//            assertNotNull(idCliente)
-//            assertNotNull(pixId)
-            assertTrue(chavePixRepository.existsByPixId(pixId))
+        val error = assertThrows<StatusRuntimeException> {
+            grpcClient.registraChavePix(chavePixRequest)
         }
 
+        // VALIDAÇÃO
+        with(error) {
+            assertEquals(Status.UNKNOWN.code, status.code)
+            assertEquals("Erro inesperado", status.description)
+        }
     }
 
     /*** MOCKS ***/
@@ -369,9 +382,4 @@ internal class RegistraChavePixEndpointTest(
         }
     }
 
-    // Conexão com o ERP Itaú
-    @MockBean(ItauErpClient::class)
-    fun erpItauMock(): ItauErpClient {
-        return Mockito.mock(ItauErpClient::class.java)
-    }
 }
