@@ -148,7 +148,7 @@ internal class DeletaChavePixEndpointTest(
     class Clients {
         @Bean
         fun blockingStubDeleta(@GrpcChannel(GrpcServerChannel.NAME) channel: ManagedChannel
-        ): DeletaChavePixServiceGrpc.DeletaChavePixServiceBlockingStub {
+        ): DeletaChavePixServiceBlockingStub {
             return DeletaChavePixServiceGrpc.newBlockingStub(channel)
         }
     }

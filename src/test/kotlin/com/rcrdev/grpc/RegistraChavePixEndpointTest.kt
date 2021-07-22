@@ -5,6 +5,13 @@ import com.rcrdev.RegistraChavePixServiceGrpc
 import com.rcrdev.RegistraChavePixServiceGrpc.RegistraChavePixServiceBlockingStub
 import com.rcrdev.TipoChave
 import com.rcrdev.TipoConta
+import com.rcrdev.bcb.*
+import com.rcrdev.bcb.enums.AccountType
+import com.rcrdev.bcb.enums.AccountType.*
+import com.rcrdev.bcb.enums.KeyType
+import com.rcrdev.bcb.enums.KeyType.*
+import com.rcrdev.bcb.enums.OwnerType
+import com.rcrdev.bcb.enums.OwnerType.*
 import com.rcrdev.chavepix.ChavePix
 import com.rcrdev.chavepix.ChavePixRepository
 import com.rcrdev.chavepix.tipos.TipoChave.CPF
@@ -37,6 +44,7 @@ import org.junit.jupiter.api.assertThrows
 import org.mockito.Mockito
 import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
+import java.time.LocalDateTime
 import javax.inject.Inject
 import javax.validation.Validator
 
@@ -60,15 +68,16 @@ internal class RegistraChavePixEndpointTest(
 
     private lateinit var chavePixRequest: ChavePixRequest
 
-    @Inject
-    lateinit var itauErpClient: ItauErpClient
+    private lateinit var owner: Owner
+    private lateinit var bankAccount: BankAccount
+    private lateinit var createPKRequest: CreatePixKeyRequest
+    private lateinit var createPKResponse: CreatePixKeyResponse
 
-    // Conexão com o ERP Itaú
-    @MockBean(ItauErpClient::class)
-    fun erpItauMock(): ItauErpClient {
-        return mock(ItauErpClient::class.java)
+    @Inject lateinit var itauErpClient: ItauErpClient
 
-    }
+    @Inject lateinit var bcbClient: BcbClient
+
+
 
     @BeforeEach
     fun setup() {
@@ -91,6 +100,14 @@ internal class RegistraChavePixEndpointTest(
             .setChave("24311919077")
             .setTipoConta(TipoConta.CONTA_CORRENTE)
             .build()
+
+        owner = Owner(type = LEGAL_PERSON, name = "Ander Castro", taxIdNumber = "12345365377")
+        bankAccount = BankAccount(branch = "1122", accountNumber = "332211", accountType = CACC)
+        createPKRequest = CreatePixKeyRequest(keyType = EMAIL, key = "ander@email.com",
+                                        bankAccount = bankAccount, owner = owner)
+
+        createPKResponse = CreatePixKeyResponse(keyType = EMAIL, key = "ander@email.com",
+            bankAccount = bankAccount, owner = owner, LocalDateTime.now())
     }
 
     @Test
@@ -98,6 +115,8 @@ internal class RegistraChavePixEndpointTest(
         // CENÁRIO
         `when`(itauErpClient.consultaContaErp("c56dfef4-7901-44fb-84e2-a2cefb157890", CONTA_CORRENTE.name))
             .thenReturn(HttpResponse.ok(contaResponse))
+
+        `when`(bcbClient.createChavePix(createPKRequest)).thenReturn(HttpResponse.ok(createPKResponse))
 
         // AÇÃO
         val response = grpcClient.registraChavePix(chavePixRequest)
@@ -380,6 +399,18 @@ internal class RegistraChavePixEndpointTest(
         ): RegistraChavePixServiceBlockingStub {
             return RegistraChavePixServiceGrpc.newBlockingStub(channel)
         }
+    }
+
+    // Conexão com o ERP Itaú
+    @MockBean(ItauErpClient::class)
+    fun erpItauMock(): ItauErpClient {
+        return mock(ItauErpClient::class.java)
+    }
+
+    // Conexão com o BCB
+    @MockBean(BcbClient::class)
+    fun bcbMock(): BcbClient {
+        return mock(BcbClient::class.java)
     }
 
 }

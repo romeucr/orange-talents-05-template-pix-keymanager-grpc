@@ -26,7 +26,7 @@ class ChavePix(
     @field: Size(max = 77)
     @field: ValorUnico(campo = "chave")
     @Column(unique = true)
-    val chave: String,
+    var chave: String,
 
     @field: NotBlank
     @Enumerated(EnumType.STRING)
@@ -40,4 +40,8 @@ class ChavePix(
 
     @Column(nullable = false, unique = true)
     val pixId: String = UUID.randomUUID().toString()
+
+    fun atualizaChaveAleatoriaBcb(chaveGeradaPeloBcb: String) {
+        this.chave = chaveGeradaPeloBcb
+    }
 }

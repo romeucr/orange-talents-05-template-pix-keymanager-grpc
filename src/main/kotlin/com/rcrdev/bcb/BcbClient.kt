@@ -1,15 +1,69 @@
 package com.rcrdev.bcb
 
+import com.rcrdev.bcb.enums.KeyType
+import io.micronaut.core.annotation.Introspected
 import io.micronaut.http.HttpResponse
 import io.micronaut.http.MediaType
 import io.micronaut.http.annotation.*
 import io.micronaut.http.client.annotation.Client
+import java.time.LocalDateTime
+import javax.validation.constraints.NotBlank
+import javax.validation.constraints.NotNull
+import javax.validation.constraints.Size
 
-@Client("http://localhost:8082/api/v1/pix/keys")
+@Client("\${bcb.database.url}")
 interface BcbClient {
 
     @Post
     @Produces(MediaType.APPLICATION_XML)
+    @Consumes(MediaType.APPLICATION_XML)
     fun createChavePix(@Body createPixKeyRequest: CreatePixKeyRequest): HttpResponse<CreatePixKeyResponse>
 
+    @Delete ("/{key}")
+    @Produces(MediaType.APPLICATION_XML)
+    @Consumes(MediaType.APPLICATION_XML)
+    fun deleteChavePix(@Body deletePixKeyRequest: DeletePixKeyRequest, key: String): HttpResponse<DeletePixKeyResponse>
 }
+
+@Introspected
+data class DeletePixKeyRequest(val key: String, val participant: String) { }
+
+@Introspected
+data class DeletePixKeyResponse(val key: String, val participant: String) { }
+
+
+@Introspected
+data class CreatePixKeyRequest(
+
+    @field: NotNull
+    val keyType: KeyType,
+
+    @field: NotNull
+    @field: Size(min = 0, max = 77)
+    val key: String,
+
+    @field: NotNull
+    val bankAccount: BankAccount,
+
+    @field: NotNull
+    val owner: Owner
+) { }
+
+@Introspected
+data class CreatePixKeyResponse(
+
+    @field: NotNull
+    val keyType: KeyType,
+
+    @field: NotBlank
+    val key: String,
+
+    @field: NotNull
+    val bankAccount: BankAccount,
+
+    @field: NotNull
+    val owner: Owner,
+
+    @field: NotBlank
+    val createdAt: LocalDateTime
+) { }

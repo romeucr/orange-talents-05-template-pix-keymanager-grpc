@@ -1,5 +1,6 @@
 package com.rcrdev.chavepix.tipos
 
+import com.rcrdev.bcb.enums.KeyType
 import org.hibernate.validator.internal.constraintvalidators.hv.EmailValidator
 import org.hibernate.validator.internal.constraintvalidators.hv.br.CPFValidator
 
@@ -19,6 +20,7 @@ enum class TipoChave {
                 isValid(chave, null)
             }
         }
+        override fun defineBcbKeyType(): KeyType { return KeyType.CPF }
 
     },
     TELEFONE {
@@ -28,6 +30,7 @@ enum class TipoChave {
             }
             return chave.matches("^\\+[1-9][0-9]\\d{1,14}\$".toRegex())
         }
+        override fun defineBcbKeyType(): KeyType { return KeyType.PHONE }
     },
     EMAIL {
         override fun valida(chave: String?): Boolean {
@@ -39,10 +42,14 @@ enum class TipoChave {
                 isValid(chave, null)
             }
         }
+        override fun defineBcbKeyType(): KeyType { return KeyType.EMAIL }
     },
     ALEATORIA {
         override fun valida(chave: String?) = true //chave.isNullOrBlank() //Não deve ser preenchida //não consegui fazer como fez o Rafael
+        override fun defineBcbKeyType(): KeyType { return KeyType.RANDOM }
     };
 
     abstract fun valida(chave: String?): Boolean
+
+    abstract fun defineBcbKeyType(): KeyType
 }

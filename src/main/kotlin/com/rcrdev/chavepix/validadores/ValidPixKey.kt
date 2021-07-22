@@ -29,9 +29,7 @@ class ValidPixKeyValidator: ConstraintValidator<ValidPixKey, ChavePix> {
         annotationMetadata: AnnotationValue<ValidPixKey>,
         context: ConstraintValidatorContext
     ): Boolean {
-//        if (value?.tipoChave == null) {
-//            return false
-//        }
-        return value!!.tipoChave.valida(value.chave)
+
+        return value?.tipoChave?.valida(value.chave) ?: return false
     }
 }

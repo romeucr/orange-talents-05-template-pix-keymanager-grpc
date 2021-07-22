@@ -3,7 +3,7 @@ package com.rcrdev.itau.service
 import com.rcrdev.compartilhado.utils.ofuscaUuid
 import com.rcrdev.conta.Conta
 import com.rcrdev.itau.ItauErpClient
-import com.rcrdev.itau.exceptions.ErpItauClientNotFoundException
+import com.rcrdev.itau.exceptions.ErpItauNotFoundException
 import io.micronaut.http.HttpStatus
 import io.micronaut.validation.Validated
 import org.slf4j.LoggerFactory
@@ -19,18 +19,15 @@ class ItauService(
     private val logger = LoggerFactory.getLogger(ItauService::class.java)
 
     fun consultaContaCliente(clientId: String, tipo: String): Conta? {
-        logger.info("Consultando ERP Itaú. Conta $tipo - ClientId: ${ofuscaUuid(clientId)}. Conta: $tipo")
-        val erpContaResponse = itauErpClient.consultaConta(clientId, tipo)
+        logger.info("Consultando ERP-Contas Itaú. [Conta: $tipo - ClientId: ${ofuscaUuid(clientId)}]")
+        val erpContaResponse = itauErpClient.consultaContaErp(clientId, tipo)
 
         if (erpContaResponse.status == HttpStatus.NOT_FOUND) {
-            logger.warn("Conta $tipo - ClientId ${ofuscaUuid(clientId)} não encontrados no ERP Itaú.")
-            throw ErpItauClientNotFoundException("Cliente não encontrado no ERP Itaú.")
+            logger.warn("Conta x Cliente não encontrados no ERP-Contas Itaú. [Conta: $tipo - ClientId ${ofuscaUuid(clientId)}]")
+            throw ErpItauNotFoundException("Conta x Cliente não encontrados no ERP Itaú.")
         }
-        logger.info("Conta $tipo - ClientId ${ofuscaUuid(clientId)} encontrados no ERP Itaú.")
+        logger.info("Conta x Cliente encontrados no ERP Itaú. [Conta: $tipo - ClientId ${ofuscaUuid(clientId)}]")
 
-        println(erpContaResponse.body())
-
-        val conta = erpContaResponse.body()?.toModel(validador)
-        return conta
+        return erpContaResponse.body()?.toModel(validador)
     }
 }

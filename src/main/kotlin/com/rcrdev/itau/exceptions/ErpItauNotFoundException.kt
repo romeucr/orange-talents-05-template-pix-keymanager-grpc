@@ -1,3 +1,3 @@
 package com.rcrdev.itau.exceptions
 
-class ErpItauClientNotFoundException(message: String) : RuntimeException(message) {}
+class ErpItauNotFoundException(message: String) : RuntimeException(message) {}

@@ -1,6 +1,7 @@
 package com.rcrdev.cliente
 
 import io.micronaut.core.annotation.Introspected
+import org.hibernate.validator.constraints.br.CPF
 import javax.validation.ConstraintViolationException
 import javax.validation.Validator
 import javax.validation.constraints.NotBlank
@@ -15,6 +16,7 @@ data class ClienteResponse(
     val nome: String,
 
     @field: NotBlank
+    @field: CPF
     val cpf: String
 ) {
 

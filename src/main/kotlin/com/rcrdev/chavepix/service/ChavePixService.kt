@@ -18,20 +18,40 @@ class ChavePixService(private val repository: ChavePixRepository) {
 
     @Transactional
     fun validaESalva(novaChavePix: ChavePix) {
-        repository.save(novaChavePix)
-        logger.info("PixId gerado com sucesso para o ClientId ${ofuscaUuid(novaChavePix.clientId)}.")
+        with (novaChavePix) {
+            repository.save(novaChavePix)
+            logger.info("PixId gerado com sucesso! [ClientId: ${ofuscaUuid(clientId)}]")
+        }
     }
 
     @Transactional
     fun validaEDeleta(delRequest: ChavePixDelete) {
         val chavePix = repository.findByPixIdAndClientId(delRequest.pixId, delRequest.clientId)
 
-        if (chavePix.isEmpty) {
-            logger.warn("Chave Pix ${ofuscaUuid(delRequest.pixId)} não encontrada ou não pertence ao cliente.")
-            throw ChavePixNotFoundException("Chave Pix não encontrada ou não pertence ao cliente.")
+        with (chavePix) {
+            if (isEmpty) {
+                logger.warn("ChavePix não encontrada ou não pertence ao cliente. " +
+                        "[PixId: ${ofuscaUuid(delRequest.pixId)}]")
+                throw ChavePixNotFoundException("Chave Pix não encontrada ou não pertence ao cliente.")
+            }
+
+            repository.delete(this.get())
+            logger.info("ChavePix excluída com sucesso. [PixId: ${ofuscaUuid(this.get().pixId)}]")
+        }
+    }
+
+    fun buscaChavePix(pixId: String, clientId: String): ChavePix {
+        logger.info("Buscando ChavePix. [PixId: ${ofuscaUuid(pixId)}]")
+        val chavePix = repository.findByPixIdAndClientId(pixId, clientId)
+
+        with (chavePix) {
+            if (isEmpty) {
+                logger.warn("ChavePix não encontrada ou não pertence ao cliente. " +
+                        "[PixId: ${ofuscaUuid(pixId)}]")
+                throw ChavePixNotFoundException("ChavePix não encontrada ou não pertence ao cliente.")
+            }
         }
 
-        repository.delete(chavePix.get())
-        logger.info("Chave Pix ${ofuscaUuid(chavePix.get().pixId)} excluída com sucesso.")
+        return chavePix.get()
     }
 }

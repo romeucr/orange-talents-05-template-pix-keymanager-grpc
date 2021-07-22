@@ -9,6 +9,6 @@ import io.micronaut.http.client.annotation.Client
 interface ItauErpClient {
 
     @Get("/{clienteId}/contas{?tipo}")
-    fun consultaConta(clienteId: String, tipo: String): HttpResponse<ContaResponse>
+    fun consultaContaErp(clienteId: String, tipo: String): HttpResponse<ContaResponse>
 
 }

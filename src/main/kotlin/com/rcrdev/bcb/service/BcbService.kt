@@ -3,39 +3,70 @@ package com.rcrdev.bcb.service
 import com.rcrdev.bcb.*
 import com.rcrdev.bcb.enums.AccountType
 import com.rcrdev.bcb.enums.KeyType
-import com.rcrdev.bcb.enums.OwnerType
-import io.micronaut.http.HttpResponse
+import com.rcrdev.bcb.enums.OwnerType.NATURAL_PERSON
+import com.rcrdev.bcb.exceptions.BcbEndpointException
+import com.rcrdev.chavepix.ChavePix
+import com.rcrdev.chavepix.tipos.TipoConta
+import com.rcrdev.compartilhado.handlers.ErrorAroundAdvice
+import com.rcrdev.conta.Conta
+import io.micronaut.http.HttpStatus
 import io.micronaut.validation.Validated
+import org.slf4j.LoggerFactory
 import javax.inject.Singleton
 
 @Validated
 @Singleton
-class BcbService(private val bcbClient: BcbClient) {
+@ErrorAroundAdvice
+class BcbService(
+    private val bcbClient: BcbClient
+) {
+    private val logger = LoggerFactory.getLogger(BcbService::class.java)
 
-    fun registraChavePix(request: CreatePixKeyRequest): HttpResponse<CreatePixKeyResponse> {
-        val ownerPKR = Owner(
-            type = OwnerType.LEGAL_PERSON,
-            name = "Ander Castro",
-            taxIdNumber = "12345365377"
-        )
+    fun createPixKey(novaChavePix: ChavePix, contaCliente: Conta) {
+        val owner = with(contaCliente) { Owner(NATURAL_PERSON, titular.nome, titular.cpf) }
+        val bankAccount = with(contaCliente) {
+            BankAccount(
+                branch = agencia,
+                accountNumber = numero,
+                accountType = if (tipoConta == TipoConta.CONTA_CORRENTE) AccountType.CACC else AccountType.SVGS
+            )
+        }
 
-        val bankAccountPKR = BankAccount(
-            branch = "1122",
-            accountNumber = "332211",
-            accountType = AccountType.CACC,
-        )
+        val createPixKeyRequest = with(novaChavePix) {
+            CreatePixKeyRequest(tipoChave.defineBcbKeyType(), chave, bankAccount, owner)
+        }
 
-        val createPKR = CreatePixKeyRequest(
-            keyType = KeyType.EMAIL,
-            key = "ander@email.com",
-            bankAccount = bankAccountPKR,
-            owner = ownerPKR
-        )
+        with(createPixKeyRequest) {
+            logger.info("Enviando ChavePix para registro no BCB - [Chave: $key - ISPB: ${bankAccount.participant}]")
+        }
+        val bcbClientHttpResponse = bcbClient.createChavePix(createPixKeyRequest)
 
-        return bcbClient.createChavePix(createPKR)
+        if (bcbClientHttpResponse.status != HttpStatus.CREATED) {
+            logger.warn("Falha ao registrar no BCB - [Chave: ${createPixKeyRequest.key} - " +
+                    "ISPB: ${bankAccount.participant}]")
+            println("o Status da resposta foi ${bcbClientHttpResponse.status}")
+            throw BcbEndpointException("Erro ao tentar registrar a chave no BCB")
+        }
+
+        val bcbResponse = bcbClientHttpResponse.body()
+
+        with(bcbResponse) {
+            if (this?.keyType == KeyType.RANDOM) novaChavePix.atualizaChaveAleatoriaBcb(key)
+            logger.info("Nova ChavePix registrada com sucesso no BCB - [Chave: ${this?.key} - Cliente: ${owner.name}]")
+        }
     }
 
-    fun deletaChavePix() {
+    fun deletaChavePix(key: String, participant: String) {
+        logger.info("Enviando ChavePix para deleção no BCB. [Chave: $key - Instituição: $participant].")
+        val bcbClientResponse = bcbClient
+            .deleteChavePix(DeletePixKeyRequest(key, participant), key)
 
+        if (bcbClientResponse.status != HttpStatus.OK) {
+            logger.warn("Falha ao deletar ChavePix no BCB. [Chave: $key - Instituição: $participant].")
+            println("o Status da resposta foi ${bcbClientResponse.status}")
+            throw BcbEndpointException("Erro ao tentar excluir a chave no BCB")
+        }
+
+        logger.info("ChavePix deletada com sucesso no BCB. [Chave: $key - Instituição: $participant].")
     }
 }

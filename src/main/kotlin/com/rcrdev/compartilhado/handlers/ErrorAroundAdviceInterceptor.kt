@@ -1,13 +1,15 @@
 package com.rcrdev.compartilhado.handlers
 
+import com.rcrdev.bcb.exceptions.BcbEndpointException
 import com.rcrdev.chavepix.exceptions.ChavePixNotFoundException
-import com.rcrdev.itau.exceptions.ErpItauClientNotFoundException
+import com.rcrdev.itau.exceptions.ErpItauNotFoundException
 import io.grpc.Status
 import io.grpc.stub.StreamObserver
 import io.micronaut.aop.InterceptorBean
 import io.micronaut.aop.MethodInterceptor
 import io.micronaut.aop.MethodInvocationContext
 import io.micronaut.http.client.exceptions.HttpClientException
+import io.micronaut.http.client.exceptions.HttpClientResponseException
 import javax.inject.Singleton
 import javax.validation.ConstraintViolationException
 
@@ -33,11 +35,11 @@ class ErrorAroundAdviceInterceptor : MethodInterceptor<Any, Any> {
                             .withCause(ex)
                             .withDescription(ex.message)
 
-                is HttpClientException -> Status.ABORTED
+                is BcbEndpointException -> Status.ABORTED
                     .withCause(ex)
-                    .withDescription("Não foi possível validar o cliente no ERP Itaú.")
+                    .withDescription(ex.message)
 
-                is ErpItauClientNotFoundException,
+                is ErpItauNotFoundException,
                 is ChavePixNotFoundException -> Status.NOT_FOUND
                     .withCause(ex)
                     .withDescription(ex.message)
