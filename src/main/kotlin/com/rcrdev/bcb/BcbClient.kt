@@ -26,10 +26,10 @@ interface BcbClient {
 }
 
 @Introspected
-data class DeletePixKeyRequest(val key: String, val participant: String) { }
+data class DeletePixKeyRequest(val key: String, val participant: String)
 
 @Introspected
-data class DeletePixKeyResponse(val key: String, val participant: String) { }
+data class DeletePixKeyResponse(val key: String, val participant: String)
 
 
 @Introspected
@@ -47,7 +47,27 @@ data class CreatePixKeyRequest(
 
     @field: NotNull
     val owner: Owner
-) { }
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as CreatePixKeyRequest
+
+        if (keyType != other.keyType) return false
+        if (bankAccount != other.bankAccount) return false
+        if (owner != other.owner) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = keyType.hashCode()
+        result = 31 * result + bankAccount.hashCode()
+        result = 31 * result + owner.hashCode()
+        return result
+    }
+}
 
 @Introspected
 data class CreatePixKeyResponse(
@@ -66,4 +86,4 @@ data class CreatePixKeyResponse(
 
     @field: NotBlank
     val createdAt: LocalDateTime
-) { }
+)

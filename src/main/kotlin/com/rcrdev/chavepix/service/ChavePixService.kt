@@ -26,17 +26,11 @@ class ChavePixService(private val repository: ChavePixRepository) {
 
     @Transactional
     fun validaEDeleta(delRequest: ChavePixDelete) {
-        val chavePix = repository.findByPixIdAndClientId(delRequest.pixId, delRequest.clientId)
-
-        with (chavePix) {
-            if (isEmpty) {
-                logger.warn("ChavePix não encontrada ou não pertence ao cliente. " +
-                        "[PixId: ${ofuscaUuid(delRequest.pixId)}]")
-                throw ChavePixNotFoundException("Chave Pix não encontrada ou não pertence ao cliente.")
-            }
-
-            repository.delete(this.get())
-            logger.info("ChavePix excluída com sucesso. [PixId: ${ofuscaUuid(this.get().pixId)}]")
+        val chavePix = repository.findByPixIdAndClientId(delRequest.pixId, delRequest.clientId).get()
+        with(chavePix) {
+            // ChavePix sempre será existente porque isso já foi validado no buscaChavePix()
+            repository.delete(this)
+            logger.info("ChavePix excluída com sucesso. [PixId: ${ofuscaUuid(this.pixId)}]")
         }
     }
 

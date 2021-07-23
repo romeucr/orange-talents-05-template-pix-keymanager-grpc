@@ -11,7 +11,7 @@ data class BankAccount(
     val branch: String, //agencia sem digito
 
     @field: Size(min = 6, max = 6)
-    val accountNumber: String, //conta com digito. Se digito for letra, substituir por zero
+    val accountNumber: String, //conta com digito. Se digito for letra, substituir por zero. Nao implementado
 
     @field: NotNull
     val accountType: AccountType

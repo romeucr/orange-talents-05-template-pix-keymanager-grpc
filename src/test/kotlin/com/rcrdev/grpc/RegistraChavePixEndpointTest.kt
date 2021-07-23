@@ -6,12 +6,10 @@ import com.rcrdev.RegistraChavePixServiceGrpc.RegistraChavePixServiceBlockingStu
 import com.rcrdev.TipoChave
 import com.rcrdev.TipoConta
 import com.rcrdev.bcb.*
-import com.rcrdev.bcb.enums.AccountType
-import com.rcrdev.bcb.enums.AccountType.*
+import com.rcrdev.bcb.enums.AccountType.CACC
 import com.rcrdev.bcb.enums.KeyType
-import com.rcrdev.bcb.enums.KeyType.*
-import com.rcrdev.bcb.enums.OwnerType
-import com.rcrdev.bcb.enums.OwnerType.*
+import com.rcrdev.bcb.enums.OwnerType.NATURAL_PERSON
+import com.rcrdev.bcb.exceptions.BcbEndpointException
 import com.rcrdev.chavepix.ChavePix
 import com.rcrdev.chavepix.ChavePixRepository
 import com.rcrdev.chavepix.tipos.TipoChave.CPF
@@ -41,7 +39,6 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.mockito.Mockito
 import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
 import java.time.LocalDateTime
@@ -73,11 +70,8 @@ internal class RegistraChavePixEndpointTest(
     private lateinit var createPKRequest: CreatePixKeyRequest
     private lateinit var createPKResponse: CreatePixKeyResponse
 
-    @Inject lateinit var itauErpClient: ItauErpClient
-
-    @Inject lateinit var bcbClient: BcbClient
-
-
+    @Inject private lateinit var itauErpClient: ItauErpClient
+    @Inject private lateinit var bcbClient: BcbClient
 
     @BeforeEach
     fun setup() {
@@ -86,28 +80,88 @@ internal class RegistraChavePixEndpointTest(
         clienteRepository.deleteAll()
         instituicaoRepository.deleteAll()
 
+        chavePixRequest = ChavePixRequest.newBuilder()
+            .setIdCliente("c56dfef4-7901-44fb-84e2-a2cefb157890")
+            .setTipoChave(TipoChave.CPF)
+            .setChave("95094701045")
+            .setTipoConta(TipoConta.CONTA_CORRENTE)
+            .build()
+
         instResponse = InstituicaoResponse(12345, "NULLBANK")
-        cliResponse = ClienteResponse("c56dfef4-8002-44fb-85e3-a2cefb159999", "Patolino De Souza", "95094701045")
+        cliResponse = ClienteResponse("c56dfef4-7901-44fb-84e2-a2cefb157890", "Patolino De Souza", "95094701045")
         contaResponse = ContaResponse(CONTA_CORRENTE.name, instResponse, "0001", "350176", cliResponse)
 
         instituicao = instResponse.toModel(validador)
         cliente = cliResponse.toModel(validador)
         conta = contaResponse.toModel(validador)
 
-        chavePixRequest = ChavePixRequest.newBuilder()
-            .setIdCliente("c56dfef4-7901-44fb-84e2-a2cefb157890")
-            .setTipoChave(TipoChave.CPF)
-            .setChave("24311919077")
-            .setTipoConta(TipoConta.CONTA_CORRENTE)
-            .build()
-
-        owner = Owner(type = LEGAL_PERSON, name = "Ander Castro", taxIdNumber = "12345365377")
-        bankAccount = BankAccount(branch = "1122", accountNumber = "332211", accountType = CACC)
-        createPKRequest = CreatePixKeyRequest(keyType = EMAIL, key = "ander@email.com",
+        owner = Owner(type = NATURAL_PERSON, name = "Patolino De Souza", taxIdNumber = "95094701045")
+        bankAccount = BankAccount(branch = "0001", accountNumber = "350176", accountType = CACC)
+        createPKRequest = CreatePixKeyRequest(keyType = KeyType.CPF, key = "95094701045",
                                         bankAccount = bankAccount, owner = owner)
 
-        createPKResponse = CreatePixKeyResponse(keyType = EMAIL, key = "ander@email.com",
+        createPKResponse = CreatePixKeyResponse(keyType = KeyType.CPF, key = "95094701045",
             bankAccount = bankAccount, owner = owner, LocalDateTime.now())
+    }
+
+    @Test
+    fun `deve atualizar o valor da chave quando for do tipo ALEATORIA`() {
+        // CENÁRIO
+        `when`(itauErpClient.consultaContaErp("c56dfef4-7901-44fb-84e2-a2cefb157890", CONTA_CORRENTE.name))
+            .thenReturn(HttpResponse.ok(contaResponse))
+
+        val createPKRequestg = CreatePixKeyRequest(keyType = KeyType.RANDOM, key = "MINHA_CHAVE",
+            bankAccount = bankAccount, owner = owner)
+
+        val createPKResponseg = CreatePixKeyResponse(keyType = KeyType.CPF, key = "CHAVE_GERADA_PELO_BCB",
+            bankAccount = bankAccount, owner = owner, LocalDateTime.now())
+
+        `when`(bcbClient.createChavePix(createPKRequestg)).thenReturn(HttpResponse.created(createPKResponseg))
+
+        // AÇÃO
+        val response = grpcClient.registraChavePix(
+            ChavePixRequest.newBuilder()
+                .setIdCliente("c56dfef4-7901-44fb-84e2-a2cefb157890")
+                .setTipoChave(TipoChave.ALEATORIA)
+                .setChave("MINHA_CHAVE")
+                .setTipoConta(TipoConta.CONTA_CORRENTE)
+                .build())
+
+        // VALIDAÇÃO
+        assertTrue(chavePixRepository.existsByChave("CHAVE_GERADA_PELO_BCB"))
+    }
+
+    @Test
+    fun `deve retornar ABORTED quando BCB retornar diferente de HttpStatus CREATED`() {
+        // CENÁRIO
+        `when`(itauErpClient.consultaContaErp("c56dfef4-7901-44fb-84e2-a2cefb157890", CONTA_CORRENTE.name))
+            .thenReturn(HttpResponse.ok(contaResponse))
+
+        `when`(bcbClient.createChavePix(createPKRequest)).thenReturn(HttpResponse.badRequest())
+
+        // AÇÃO
+        val error = assertThrows<StatusRuntimeException> {
+            grpcClient.registraChavePix(chavePixRequest)}
+
+        // VALIDAÇÃO
+        assertEquals(Status.ABORTED.code, error.status.code)
+    }
+
+    @Test
+    fun `deve retornar ABORTED quando BCB indisponivel`() {
+        // CENÁRIO
+        `when`(itauErpClient.consultaContaErp("c56dfef4-7901-44fb-84e2-a2cefb157890", CONTA_CORRENTE.name))
+            .thenReturn(HttpResponse.ok(contaResponse))
+
+        `when`(bcbClient.createChavePix(createPKRequest))
+            .thenThrow(HttpClientException("Erro de conexão com BCB"))
+
+        // AÇÃO
+        val error = assertThrows<StatusRuntimeException> {
+            grpcClient.registraChavePix(chavePixRequest) }
+
+        // VALIDAÇÃO
+        assertEquals(Status.ABORTED.code, error.status.code)
     }
 
     @Test
@@ -116,7 +170,7 @@ internal class RegistraChavePixEndpointTest(
         `when`(itauErpClient.consultaContaErp("c56dfef4-7901-44fb-84e2-a2cefb157890", CONTA_CORRENTE.name))
             .thenReturn(HttpResponse.ok(contaResponse))
 
-        `when`(bcbClient.createChavePix(createPKRequest)).thenReturn(HttpResponse.ok(createPKResponse))
+        `when`(bcbClient.createChavePix(createPKRequest)).thenReturn(HttpResponse.created(createPKResponse))
 
         // AÇÃO
         val response = grpcClient.registraChavePix(chavePixRequest)
@@ -127,7 +181,6 @@ internal class RegistraChavePixEndpointTest(
             assertNotNull(pixId)
             assertTrue(chavePixRepository.existsByPixId(pixId))
         }
-
     }
 
     @Test
@@ -157,6 +210,7 @@ internal class RegistraChavePixEndpointTest(
         // CENÁRIO
         `when`(itauErpClient.consultaContaErp("c56dfef4-7901-44fb-84e2-a2cefb157890", CONTA_CORRENTE.name))
             .thenReturn(HttpResponse.ok(contaResponse))
+        `when`(bcbClient.createChavePix(createPKRequest)).thenReturn(HttpResponse.created(createPKResponse))
 
         val novaInstituicao = contaResponse.instituicao.toModel(validador)
 
@@ -177,6 +231,8 @@ internal class RegistraChavePixEndpointTest(
         `when`(itauErpClient.consultaContaErp("c56dfef4-7901-44fb-84e2-a2cefb157890", CONTA_CORRENTE.name))
             .thenReturn(HttpResponse.ok(contaResponse))
 
+        `when`(bcbClient.createChavePix(createPKRequest)).thenReturn(HttpResponse.created(createPKResponse))
+
         val novoCliente = contaResponse.titular.toModel(validador)
 
         // AÇÃO
@@ -185,7 +241,7 @@ internal class RegistraChavePixEndpointTest(
         // VALIDAÇÃO
         with(novoCliente) {
             assertTrue(clienteRepository.existsById(id))
-            assertEquals("c56dfef4-8002-44fb-85e3-a2cefb159999", id)
+            assertEquals("c56dfef4-7901-44fb-84e2-a2cefb157890", id)
             assertEquals("Patolino De Souza", nome)
             assertEquals("95094701045", cpf)
         }
@@ -197,16 +253,18 @@ internal class RegistraChavePixEndpointTest(
         `when`(itauErpClient.consultaContaErp("c56dfef4-7901-44fb-84e2-a2cefb157890", CONTA_CORRENTE.name))
             .thenReturn(HttpResponse.ok(contaResponse))
 
-        val novaInstituicao = contaResponse.instituicao.toModel(validador)
-        val novoCliente = contaResponse.titular.toModel(validador)
+        contaResponse.instituicao.toModel(validador)
+        contaResponse.titular.toModel(validador)
         val novaConta = contaResponse.toModel(validador)
+
+        `when`(bcbClient.createChavePix(createPKRequest)).thenReturn(HttpResponse.created(createPKResponse))
 
         // AÇÃO
         grpcClient.registraChavePix(chavePixRequest)
 
         // VALIDAÇÃO
         with(novaConta) {
-            assertTrue(contaRepository.existsByAgenciaAndNumero(agencia, numero))
+            assertTrue(contaRepository.existsByAgenciaNumeroTipo(agencia, numero, tipoConta.name))
             assertEquals(CONTA_CORRENTE, tipoConta)
             assertEquals(conta.instituicao.ispb, instituicao.ispb)
             assertEquals("0001", agencia)
@@ -223,13 +281,7 @@ internal class RegistraChavePixEndpointTest(
 
         // AÇÃO
         val error = assertThrows<StatusRuntimeException> {
-            grpcClient.registraChavePix(
-                ChavePixRequest.newBuilder()
-                    .setIdCliente("c56dfef4-7901-44fb-84e2-a2cefb157890")
-                    .setTipoChave(TipoChave.CPF)
-                    .setChave("24311919077")
-                    .setTipoConta(TipoConta.CONTA_CORRENTE)
-                    .build()) }
+            grpcClient.registraChavePix(chavePixRequest) }
 
         // VALIDAÇÃO
         assertEquals(Status.ABORTED.code, error.status.code)
@@ -284,7 +336,6 @@ internal class RegistraChavePixEndpointTest(
         // VALIDAÇÃO
         assertEquals(Status.INVALID_ARGUMENT.code, error.status.code)
     }
-
 
     @Test
     fun `deve retornar INVALID_ARGUMENT quando ChavePix invalida (TELEFONE - NOTBLANK)`() {

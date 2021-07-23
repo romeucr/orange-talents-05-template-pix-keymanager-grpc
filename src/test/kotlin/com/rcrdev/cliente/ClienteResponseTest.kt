@@ -36,6 +36,6 @@ internal class ClienteResponseTest(private val validador: Validator) {
             ClienteResponse("7fdb2d46-ba8d-4e8d-aaa9-668e9b0f1584","Tio Patinhas", "")
 
         // AÇÃO  // VALIDAÇÃO
-        assertThrows<ConstraintViolationException> { val cliente = cliResponse.toModel(validador) }
+        assertThrows<ConstraintViolationException> { cliResponse.toModel(validador) }
     }
 }

@@ -35,6 +35,7 @@ class ErrorAroundAdviceInterceptor : MethodInterceptor<Any, Any> {
                             .withCause(ex)
                             .withDescription(ex.message)
 
+                is HttpClientException,
                 is BcbEndpointException -> Status.ABORTED
                     .withCause(ex)
                     .withDescription(ex.message)

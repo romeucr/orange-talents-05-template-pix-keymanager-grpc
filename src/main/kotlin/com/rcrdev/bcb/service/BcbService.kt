@@ -9,19 +9,22 @@ import com.rcrdev.chavepix.ChavePix
 import com.rcrdev.chavepix.tipos.TipoConta
 import com.rcrdev.compartilhado.handlers.ErrorAroundAdvice
 import com.rcrdev.conta.Conta
+import io.micronaut.http.HttpResponse
 import io.micronaut.http.HttpStatus
+import io.micronaut.http.client.exceptions.HttpClientException
 import io.micronaut.validation.Validated
 import org.slf4j.LoggerFactory
 import javax.inject.Singleton
+import javax.transaction.Transactional
 
 @Validated
 @Singleton
-@ErrorAroundAdvice
 class BcbService(
     private val bcbClient: BcbClient
 ) {
     private val logger = LoggerFactory.getLogger(BcbService::class.java)
 
+    //@Transactional
     fun createPixKey(novaChavePix: ChavePix, contaCliente: Conta) {
         val owner = with(contaCliente) { Owner(NATURAL_PERSON, titular.nome, titular.cpf) }
         val bankAccount = with(contaCliente) {
@@ -39,12 +42,18 @@ class BcbService(
         with(createPixKeyRequest) {
             logger.info("Enviando ChavePix para registro no BCB - [Chave: $key - ISPB: ${bankAccount.participant}]")
         }
-        val bcbClientHttpResponse = bcbClient.createChavePix(createPixKeyRequest)
+
+        val bcbClientHttpResponse: HttpResponse<*>
+        try {
+          bcbClientHttpResponse = bcbClient.createChavePix(createPixKeyRequest)
+         } catch (ex: HttpClientException) {
+          throw BcbEndpointException("Erro ao tentar registrar a chave no BCB")
+        }
 
         if (bcbClientHttpResponse.status != HttpStatus.CREATED) {
             logger.warn("Falha ao registrar no BCB - [Chave: ${createPixKeyRequest.key} - " +
                     "ISPB: ${bankAccount.participant}]")
-            println("o Status da resposta foi ${bcbClientHttpResponse.status}")
+
             throw BcbEndpointException("Erro ao tentar registrar a chave no BCB")
         }
 
@@ -56,6 +65,7 @@ class BcbService(
         }
     }
 
+    @Transactional
     fun deletaChavePix(key: String, participant: String) {
         logger.info("Enviando ChavePix para deleção no BCB. [Chave: $key - Instituição: $participant].")
         val bcbClientResponse = bcbClient
@@ -63,7 +73,6 @@ class BcbService(
 
         if (bcbClientResponse.status != HttpStatus.OK) {
             logger.warn("Falha ao deletar ChavePix no BCB. [Chave: $key - Instituição: $participant].")
-            println("o Status da resposta foi ${bcbClientResponse.status}")
             throw BcbEndpointException("Erro ao tentar excluir a chave no BCB")
         }
 

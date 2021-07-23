@@ -50,6 +50,7 @@ class ContaService(
     }
 
     fun buscaConta(clientId: String, tipoConta: TipoConta): Conta {
+        logger.info("Buscando Conta. [ClientId: ${ofuscaUuid(clientId)} - $tipoConta]")
         val conta = contaRepository.findByClientIdAndTipoConta(clientId, tipoConta.name)
 
         if (conta.isEmpty) {
