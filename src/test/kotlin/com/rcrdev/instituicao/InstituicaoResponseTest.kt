@@ -35,7 +35,7 @@ internal class InstituicaoResponseTest(private val validador: Validator) {
 
         // AÇÃO  // VALIDAÇÃO
         assertThrows<ConstraintViolationException> {
-            val instituicao = instResponse.toModel(validador)
+            instResponse.toModel(validador)
         }
     }
 }

@@ -5,6 +5,13 @@ import org.hibernate.validator.internal.constraintvalidators.hv.EmailValidator
 import org.hibernate.validator.internal.constraintvalidators.hv.br.CPFValidator
 
 enum class TipoChave {
+    DESCONHECIDO {
+        override fun valida(chave: String?): Boolean {
+            return false
+        }
+        override fun defineBcbKeyType(): KeyType { return KeyType.UNKNOWN}
+
+    },
     CPF {
         override fun valida(chave: String?): Boolean {
             if (chave.isNullOrBlank()) {

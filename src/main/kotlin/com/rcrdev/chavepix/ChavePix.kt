@@ -5,9 +5,12 @@ import com.rcrdev.chavepix.tipos.TipoConta
 import com.rcrdev.chavepix.validadores.ValidPixKey
 import com.rcrdev.chavepix.validadores.ValorUnico
 import io.micronaut.core.annotation.Introspected
+import jdk.jfr.Timestamp
+import java.time.LocalDateTime
 import java.util.*
 import javax.persistence.*
 import javax.validation.constraints.NotBlank
+import javax.validation.constraints.NotNull
 import javax.validation.constraints.Size
 
 @ValidPixKey
@@ -31,7 +34,7 @@ class ChavePix(
     @field: NotBlank
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    val tipoConta: TipoConta
+    val tipoConta: TipoConta,
 ) {
 
     @Id
@@ -41,7 +44,5 @@ class ChavePix(
     @Column(nullable = false, unique = true)
     val pixId: String = UUID.randomUUID().toString()
 
-    fun atualizaChaveAleatoriaBcb(chaveGeradaPeloBcb: String) {
-        this.chave = chaveGeradaPeloBcb
-    }
+    var criadoEm: LocalDateTime? = null
 }

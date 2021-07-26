@@ -59,6 +59,7 @@ class ContaService(
             throw ContaNotFoundException("Não foi encontrada Conta do tipo para o Cliente informado.")
         }
 
+        logger.info("Conta encontrada. [ClientId: ${ofuscaUuid(clientId)} - $tipoConta]")
         return conta.get()
     }
 }

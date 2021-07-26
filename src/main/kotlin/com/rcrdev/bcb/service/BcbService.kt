@@ -7,7 +7,6 @@ import com.rcrdev.bcb.enums.OwnerType.NATURAL_PERSON
 import com.rcrdev.bcb.exceptions.BcbEndpointException
 import com.rcrdev.chavepix.ChavePix
 import com.rcrdev.chavepix.tipos.TipoConta
-import com.rcrdev.compartilhado.handlers.ErrorAroundAdvice
 import com.rcrdev.conta.Conta
 import io.micronaut.http.HttpResponse
 import io.micronaut.http.HttpStatus
@@ -60,7 +59,8 @@ class BcbService(
         val bcbResponse = bcbClientHttpResponse.body()
 
         with(bcbResponse) {
-            if (this?.keyType == KeyType.RANDOM) novaChavePix.atualizaChaveAleatoriaBcb(key)
+            if (this?.keyType == KeyType.RANDOM) novaChavePix.chave = key
+            novaChavePix.criadoEm = this?.createdAt
             logger.info("Nova ChavePix registrada com sucesso no BCB - [Chave: ${this?.key} - Cliente: ${owner.name}]")
         }
     }

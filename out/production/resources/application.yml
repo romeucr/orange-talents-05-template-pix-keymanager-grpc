@@ -1,13 +1,16 @@
+##### MICRONAUT
 micronaut:
   application:
     name: keyManagerGrpc
 
+##### GRPC
 grpc:
   server:
     port: ${SERVERPORT:50051}
     keep-alive-time: 1h
     max-inbound-message-size: 1024
 
+##### DATASOURCES
 datasources:
   default:
     url: ${DATASOURCE_URL:`jdbc:mysql://localhost:3306/km_grpc?useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC`}
@@ -17,10 +20,23 @@ datasources:
     schema-generate: CREATE_DROP
     dialect: MYSQL
 
+##### JPA
 jpa:
   default:
     properties:
       hibernate:
         hbm2ddl:
           auto: update
-        show_sql: true
+        show_sql: false
+
+##### ITAU
+itau:
+  erp:
+    url: http://localhost:9091/api/v1/clientes
+  ispb:
+    code: 60701190
+
+##### BCB - BANCO CENTRAL DO BRASIL
+bcb:
+  database:
+    url: http://localhost:8082/api/v1/pix/keys

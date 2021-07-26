@@ -110,16 +110,16 @@ internal class RegistraChavePixEndpointTest(
         `when`(itauErpClient.consultaContaErp("c56dfef4-7901-44fb-84e2-a2cefb157890", CONTA_CORRENTE.name))
             .thenReturn(HttpResponse.ok(contaResponse))
 
-        val createPKRequestg = CreatePixKeyRequest(keyType = KeyType.RANDOM, key = "MINHA_CHAVE",
+        val createRequest = CreatePixKeyRequest(keyType = KeyType.RANDOM, key = "MINHA_CHAVE",
             bankAccount = bankAccount, owner = owner)
 
-        val createPKResponseg = CreatePixKeyResponse(keyType = KeyType.CPF, key = "CHAVE_GERADA_PELO_BCB",
+        val createResponse = CreatePixKeyResponse(keyType = KeyType.CPF, key = "CHAVE_GERADA_PELO_BCB",
             bankAccount = bankAccount, owner = owner, LocalDateTime.now())
 
-        `when`(bcbClient.createChavePix(createPKRequestg)).thenReturn(HttpResponse.created(createPKResponseg))
+        `when`(bcbClient.createChavePix(createRequest)).thenReturn(HttpResponse.created(createResponse))
 
         // AÇÃO
-        val response = grpcClient.registraChavePix(
+        grpcClient.registraChavePix(
             ChavePixRequest.newBuilder()
                 .setIdCliente("c56dfef4-7901-44fb-84e2-a2cefb157890")
                 .setTipoChave(TipoChave.ALEATORIA)

@@ -48,6 +48,10 @@ data class CreatePixKeyRequest(
     @field: NotNull
     val owner: Owner
 ) {
+
+    /* overrride no equal e hashcode para que não leve em consideração o valor da chave(key)
+     * deixando o key, o teste deve atualizar o valor da chave quando for do tipo ALEATORIA falha
+     */
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false

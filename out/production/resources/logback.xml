@@ -12,4 +12,7 @@
     <root level="info">
         <appender-ref ref="STDOUT" />
     </root>
+
+    <!-- para ver as requisições feitas pelo client do micronaut -->
+<!--    <logger name="io.micronaut.http.client" level="TRACE"/>-->
 </configuration>

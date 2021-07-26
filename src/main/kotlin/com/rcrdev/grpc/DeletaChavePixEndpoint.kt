@@ -23,7 +23,6 @@ class DeletaChavePixEndpoint(
     private val contaService: ContaService,
     private val bcbService: BcbService
 ) : DeletaChavePixServiceGrpc.DeletaChavePixServiceImplBase() {
-    private val logger = LoggerFactory.getLogger(DeletaChavePixEndpoint::class.java)
 
     override fun deletaPixId(
         request: ChavePixDeleteRequest,

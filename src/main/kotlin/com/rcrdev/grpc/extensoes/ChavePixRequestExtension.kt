@@ -9,7 +9,6 @@ import java.util.*
 import javax.validation.ConstraintViolationException
 import javax.validation.Validator
 
-@ErrorAroundAdvice
 fun ChavePixRequest.toChavePix(validador: Validator) : ChavePix {
     val novaChavePix = ChavePix(
         clientId = this.idCliente,

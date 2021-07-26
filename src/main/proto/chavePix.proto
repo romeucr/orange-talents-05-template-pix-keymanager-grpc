@@ -2,6 +2,8 @@ syntax = "proto3";
 
 option java_multiple_files = true;
 
+import "google/protobuf/timestamp.proto";
+
 package com.rcrdev;
 
 service RegistraChavePixService {
@@ -12,6 +14,15 @@ service DeletaChavePixService {
   rpc deletaPixId (ChavePixDeleteRequest) returns (ChavePixDeleteResponse) {}
 }
 
+service ConsultaCPClientesService {
+  rpc consultaChavePixClientes (ConsultaCPClienteRequest) returns (ConsultaCPClienteResponse) {}
+}
+
+service ConsultaCPSistemasService {
+  rpc consultaChavePixSistemas (ConsultaCPSistemaRequest) returns (ConsultaCPSistemaResponse) {}
+}
+
+ /*** ENUMS ***/
 enum TipoChave {
   DESCONHECIDO_TIPO_CHAVE = 0;
   CPF       = 1;
@@ -26,6 +37,7 @@ enum TipoConta {
   CONTA_POUPANCA = 2;
 }
 
+/*** RegistraChavePixService ***/
 message ChavePixRequest {
   string idCliente    = 1;
   TipoChave tipoChave = 2;
@@ -38,6 +50,7 @@ message ChavePixResponse {
   string pixId     = 2;
 }
 
+/*** DeletaChavePixService ***/
 message ChavePixDeleteRequest {
   string idCliente = 1;
   string pixId     = 2;
@@ -46,4 +59,45 @@ message ChavePixDeleteRequest {
 message ChavePixDeleteResponse {
   string idCliente = 1;
   string pixId     = 2;
+}
+
+/*** ConsultaCPClientesService ***/
+message TitularChave {
+  string nome = 1;
+  string cpf  = 2;
+}
+
+message Conta {
+  string nomeInstituicao  = 1;
+  string agencia          = 2;
+  string numero           = 3;
+  TipoConta tipo          = 4;
+}
+
+message ConsultaCPClienteRequest {
+  string idCliente = 1;
+  string pixId     = 2;
+}
+
+message ConsultaCPClienteResponse {
+  string idCliente                   = 1;
+  string pixId                       = 2;
+  TipoChave tipoChave                = 3;
+  string chave                       = 4;
+  TitularChave titular               = 5;
+  Conta conta                        = 6;
+  google.protobuf.Timestamp criadoEm = 7;
+}
+
+/*** ConsultaCPSistemasService ***/
+message ConsultaCPSistemaRequest {
+  string chave        = 1;
+}
+
+message ConsultaCPSistemaResponse {
+  TipoChave tipoChave                = 1;
+  string chave                       = 2;
+  TitularChave titular               = 3;
+  Conta conta                        = 4;
+  google.protobuf.Timestamp criadoEm = 5;
 }
