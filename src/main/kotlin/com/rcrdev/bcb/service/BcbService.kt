@@ -23,7 +23,7 @@ class BcbService(
 ) {
     private val logger = LoggerFactory.getLogger(BcbService::class.java)
 
-    //@Transactional
+//    @Transactional ==>> TESTAR
     fun createPixKey(novaChavePix: ChavePix, contaCliente: Conta) {
         val owner = with(contaCliente) { Owner(NATURAL_PERSON, titular.nome, titular.cpf) }
         val bankAccount = with(contaCliente) {
@@ -67,15 +67,28 @@ class BcbService(
 
     @Transactional
     fun deletaChavePix(key: String, participant: String) {
-        logger.info("Enviando ChavePix para deleção no BCB. [Chave: $key - Instituição: $participant].")
+        logger.info("Enviando ChavePix para deleção no BCB. [Chave: $key - Instituição: $participant]")
         val bcbClientResponse = bcbClient
             .deleteChavePix(DeletePixKeyRequest(key, participant), key)
 
         if (bcbClientResponse.status != HttpStatus.OK) {
-            logger.warn("Falha ao deletar ChavePix no BCB. [Chave: $key - Instituição: $participant].")
+            logger.warn("Falha ao deletar ChavePix no BCB. [Chave: $key - Instituição: $participant]")
             throw BcbEndpointException("Erro ao tentar excluir a chave no BCB")
         }
 
-        logger.info("ChavePix deletada com sucesso no BCB. [Chave: $key - Instituição: $participant].")
+        logger.info("ChavePix deletada com sucesso no BCB. [Chave: $key - Instituição: $participant]")
+    }
+
+    fun getChavePix(key: String): PixKeyDetailsResponse {
+        logger.info("Consultando ChavePix no BCB. [Chave: $key]")
+        val bcbClientResponse = bcbClient.getChavePix(key)
+
+        if (bcbClientResponse.status != HttpStatus.OK) {
+            logger.warn("ChavePix não cadastrada no BCB. [Chave: $key]")
+            throw BcbEndpointException("ChavePix não cadastrada no BCB.")
+        }
+
+        logger.info("ChavePix encontrada. Retornando informações da ChavePix solicitada. [Chave: $key]")
+        return bcbClientResponse.body()!!
     }
 }

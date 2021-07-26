@@ -8,7 +8,7 @@ import com.rcrdev.chavepix.ChavePix
 import com.rcrdev.conta.Conta
 import java.time.ZoneOffset
 
-fun criarResponseGrpc(chavePix: ChavePix, conta: Conta): ConsultaCPClienteResponse {
+fun criarResponseGrpcCliente(chavePix: ChavePix, conta: Conta): ConsultaCPClienteResponse {
 
     return ConsultaCPClienteResponse.newBuilder()
         .setPixId(chavePix.pixId)

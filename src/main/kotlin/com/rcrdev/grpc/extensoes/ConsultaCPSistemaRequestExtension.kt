@@ -1,6 +1,5 @@
 package com.rcrdev.grpc.extensoes
 
-import com.rcrdev.ConsultaCPClienteRequest
 import com.rcrdev.ConsultaCPSistemaRequest
 import javax.validation.ConstraintViolationException
 import javax.validation.Validator

@@ -23,6 +23,11 @@ interface BcbClient {
     @Produces(MediaType.APPLICATION_XML)
     @Consumes(MediaType.APPLICATION_XML)
     fun deleteChavePix(@Body deletePixKeyRequest: DeletePixKeyRequest, key: String): HttpResponse<DeletePixKeyResponse>
+
+    @Get ("/{key}")
+    @Produces(MediaType.APPLICATION_XML)
+//    @Consumes(MediaType.APPLICATION_XML)
+    fun getChavePix(key: String): HttpResponse<PixKeyDetailsResponse>
 }
 
 @Introspected
@@ -30,7 +35,6 @@ data class DeletePixKeyRequest(val key: String, val participant: String)
 
 @Introspected
 data class DeletePixKeyResponse(val key: String, val participant: String)
-
 
 @Introspected
 data class CreatePixKeyRequest(
@@ -48,10 +52,8 @@ data class CreatePixKeyRequest(
     @field: NotNull
     val owner: Owner
 ) {
-
     /* overrride no equal e hashcode para que não leve em consideração o valor da chave(key)
-     * deixando o key, o teste deve atualizar o valor da chave quando for do tipo ALEATORIA falha
-     */
+     * deixando o key, o teste deve atualizar o valor da chave quando for do tipo ALEATORIA falha */
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
@@ -64,7 +66,6 @@ data class CreatePixKeyRequest(
 
         return true
     }
-
     override fun hashCode(): Int {
         var result = keyType.hashCode()
         result = 31 * result + bankAccount.hashCode()
@@ -89,5 +90,13 @@ data class CreatePixKeyResponse(
     val owner: Owner,
 
     @field: NotBlank
+    val createdAt: LocalDateTime
+)
+
+data class PixKeyDetailsResponse(
+    val keyType: KeyType,
+    val key: String,
+    val bankAccount: BankAccount,
+    val owner: Owner,
     val createdAt: LocalDateTime
 )
