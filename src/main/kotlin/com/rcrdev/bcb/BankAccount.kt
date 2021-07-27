@@ -17,5 +17,5 @@ data class BankAccount(
     val accountType: AccountType
 ) {
     @field: NotEmpty
-    val participant = "60701190"
+    var participant = "60701190"
 }

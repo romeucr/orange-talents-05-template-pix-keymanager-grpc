@@ -49,7 +49,7 @@ internal class ContaResponseTest(private val validador: Validator){
 
         // AÇÃO  // VALIDAÇÃO
         assertThrows<ConstraintViolationException> {
-            val conta = contaResponse.toModel(validador)
+            contaResponse.toModel(validador)
         }
     }
 }

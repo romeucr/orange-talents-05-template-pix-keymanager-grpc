@@ -10,6 +10,8 @@ import java.time.ZoneOffset
 
 fun criarResponseGrpcCliente(chavePix: ChavePix, conta: Conta): ConsultaCPClienteResponse {
 
+    println(chavePix.criadoEm)
+
     return ConsultaCPClienteResponse.newBuilder()
         .setPixId(chavePix.pixId)
         .setIdCliente(chavePix.clientId)
@@ -26,6 +28,7 @@ fun criarResponseGrpcCliente(chavePix: ChavePix, conta: Conta): ConsultaCPClient
                 .setNumero(conta.numero)
                 .setNomeInstituicao(conta.instituicao.nome)
                 .setTipoValue(conta.tipoConta.ordinal)
+                .build()
         )
         .setCriadoEm(chavePix.criadoEm?.let {
             Timestamp.newBuilder()

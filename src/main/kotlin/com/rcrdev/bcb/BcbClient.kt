@@ -26,7 +26,6 @@ interface BcbClient {
 
     @Get ("/{key}")
     @Produces(MediaType.APPLICATION_XML)
-//    @Consumes(MediaType.APPLICATION_XML)
     fun getChavePix(key: String): HttpResponse<PixKeyDetailsResponse>
 }
 

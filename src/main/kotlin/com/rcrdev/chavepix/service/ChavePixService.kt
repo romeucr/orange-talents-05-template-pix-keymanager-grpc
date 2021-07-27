@@ -68,13 +68,14 @@ class ChavePixService(
 
             return criarResponseGrpcSistema(chavePix, conta)
         }
+
         val bcbResponse = bcbService.getChavePix(key)
         val optInst = instituicaoRepository.findById(bcbResponse.bankAccount.participant.toInt())
         if (optInst.isPresent) {
             val instituicao = optInst.get()
             return criarResponseGrpcSistema(bcbResponse, instituicao.nome)
         } else {
-            throw InstituicaoNotFoundException("Instituição não cadastrada no sistema")
+            throw InstituicaoNotFoundException("Instituição não cadastrada no sistema interno")
         }
 
     }

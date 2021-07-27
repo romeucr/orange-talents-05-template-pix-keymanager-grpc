@@ -1,9 +1,8 @@
 package com.rcrdev.instituicao
 
-import com.rcrdev.cliente.Cliente
-import com.rcrdev.cliente.ClienteResponse
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import javax.validation.ConstraintViolationException

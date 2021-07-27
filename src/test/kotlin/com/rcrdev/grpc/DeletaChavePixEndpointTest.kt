@@ -26,7 +26,6 @@ import io.micronaut.grpc.server.GrpcServerChannel
 import io.micronaut.http.HttpResponse
 import io.micronaut.test.annotation.MockBean
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -34,7 +33,7 @@ import org.junit.jupiter.api.assertThrows
 import org.mockito.Mockito
 import javax.inject.Inject
 
-@MicronautTest
+@MicronautTest(transactional = false)
 internal class DeletaChavePixEndpointTest(
     private val grpcClientDeleta: DeletaChavePixServiceBlockingStub,
     private val chavePixRepository: ChavePixRepository,
@@ -49,8 +48,6 @@ internal class DeletaChavePixEndpointTest(
 
     lateinit var deletePixKeyRequest: DeletePixKeyRequest
     lateinit var deletePixKeyResponse: DeletePixKeyResponse
-
-    lateinit var chavePixDeletePixKeyRequest: DeletePixKeyRequest
 
     @Inject
     private lateinit var bcbClient: BcbClient
@@ -100,7 +97,7 @@ internal class DeletaChavePixEndpointTest(
 
         // AÇÃO
         val error = assertThrows<StatusRuntimeException> {
-            val response = grpcClientDeleta.deletaPixId(request) }
+           grpcClientDeleta.deletaPixId(request) }
 
         // VALIDAÇÃO
         assertEquals(Status.ABORTED.code, error.status.code)

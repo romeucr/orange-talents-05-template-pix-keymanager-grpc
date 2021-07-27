@@ -29,13 +29,10 @@ class DeletaChavePixEndpoint(
         responseObserver: StreamObserver<ChavePixDeleteResponse>
     ) {
         val delRequest = request.toChavePixDelete(validator)
-
         val chavePix = chavePixService.buscaChavePix(delRequest.pixId, delRequest.clientId)
-
         val conta = contaService.buscaConta(chavePix.clientId, chavePix.tipoConta)
 
         bcbService.deletaChavePix(chavePix.chave, conta.instituicao.ispb.toString())
-
         chavePixService.validaEDeleta(delRequest)
 
         val response = ChavePixDeleteResponse.newBuilder()

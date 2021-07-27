@@ -42,7 +42,7 @@ class ChavePix(
     val id: Long? = null
 
     @Column(nullable = false, unique = true)
-    val pixId: String = UUID.randomUUID().toString()
+    var pixId: String = UUID.randomUUID().toString()
 
     var criadoEm: LocalDateTime? = null
 }

@@ -5,7 +5,6 @@ import com.rcrdev.ConsultaCPSistemaResponse
 import com.rcrdev.ConsultaCPSistemasServiceGrpc
 import com.rcrdev.chavepix.service.ChavePixService
 import com.rcrdev.compartilhado.handlers.ErrorAroundAdvice
-import com.rcrdev.conta.service.ContaService
 import com.rcrdev.grpc.extensoes.validar
 import io.grpc.stub.StreamObserver
 import io.micronaut.validation.Validated
@@ -18,8 +17,7 @@ import javax.validation.Validator
 @Singleton
 class ConsultaCPSistemasEndpoint(
     private val validador: Validator,
-    private val chavePixService: ChavePixService,
-    private val contaService: ContaService
+    private val chavePixService: ChavePixService
 ) : ConsultaCPSistemasServiceGrpc.ConsultaCPSistemasServiceImplBase() {
 
     private val logger = LoggerFactory.getLogger(ConsultaCPSistemasEndpoint::class.java)

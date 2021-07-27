@@ -2,6 +2,7 @@ package com.rcrdev.compartilhado.handlers
 
 import com.rcrdev.bcb.exceptions.BcbEndpointException
 import com.rcrdev.chavepix.exceptions.ChavePixNotFoundException
+import com.rcrdev.instituicao.exceptions.InstituicaoNotFoundException
 import com.rcrdev.itau.exceptions.ErpItauNotFoundException
 import io.grpc.Status
 import io.grpc.stub.StreamObserver
@@ -36,6 +37,7 @@ class ErrorAroundAdviceInterceptor : MethodInterceptor<Any, Any> {
                             .withDescription(ex.message)
 
                 is HttpClientException,
+                is InstituicaoNotFoundException,
                 is BcbEndpointException -> Status.ABORTED
                     .withCause(ex)
                     .withDescription(ex.message)

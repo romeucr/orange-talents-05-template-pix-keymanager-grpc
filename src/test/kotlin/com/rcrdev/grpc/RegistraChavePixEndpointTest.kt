@@ -9,7 +9,6 @@ import com.rcrdev.bcb.*
 import com.rcrdev.bcb.enums.AccountType.CACC
 import com.rcrdev.bcb.enums.KeyType
 import com.rcrdev.bcb.enums.OwnerType.NATURAL_PERSON
-import com.rcrdev.bcb.exceptions.BcbEndpointException
 import com.rcrdev.chavepix.ChavePix
 import com.rcrdev.chavepix.ChavePixRepository
 import com.rcrdev.chavepix.tipos.TipoChave.CPF
@@ -446,7 +445,7 @@ internal class RegistraChavePixEndpointTest(
     @Factory
     class Clients {
         @Bean
-        fun blockingStub(@GrpcChannel(GrpcServerChannel.NAME) channel: ManagedChannel
+        fun blockingStubRegistra(@GrpcChannel(GrpcServerChannel.NAME) channel: ManagedChannel
         ): RegistraChavePixServiceBlockingStub {
             return RegistraChavePixServiceGrpc.newBlockingStub(channel)
         }
