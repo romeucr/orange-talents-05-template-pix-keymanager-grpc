@@ -7,10 +7,6 @@ import java.util.*
 
 @Repository
 interface ChavePixRepository : JpaRepository<ChavePix, Long> {
-
-    @Query("SELECT COUNT(c) < 1 FROM ChavePix c WHERE client_id = :clientId")
-    fun existsByClientId(clientId: String) : Boolean
-
     @Query("SELECT COUNT(c) < 1 FROM ChavePix c WHERE chave = :chave")
     fun existsByChave(chave: String) : Boolean
 

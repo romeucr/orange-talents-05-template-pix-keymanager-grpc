@@ -16,7 +16,6 @@ import kotlin.annotation.AnnotationTarget.FIELD
 @Constraint(validatedBy = [ValorUnicoValidador::class])
 annotation class ValorUnico(
     val message: String = "Já existe Chave Pix gerada para o valor informado.",
-    val campo: String = ""
 )
 
 @Singleton
@@ -29,15 +28,7 @@ class ValorUnicoValidador(private val chavePixRepository: ChavePixRepository) :
         context: ConstraintValidatorContext
     ): Boolean {
 
-        val campos = annotationMetadata.values
-
-        if (campos.containsValue("clientId"))
-            return chavePixRepository.existsByClientId(value.toString())
-
-        if (campos.containsValue("chave"))
-            return chavePixRepository.existsByChave(value.toString())
-
-        return false
+        return chavePixRepository.existsByChave(value.toString())
     }
 
 }

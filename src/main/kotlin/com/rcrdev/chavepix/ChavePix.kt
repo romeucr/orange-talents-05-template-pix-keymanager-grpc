@@ -18,8 +18,7 @@ import javax.validation.constraints.Size
 @Introspected
 class ChavePix(
     @field: NotBlank
-    @field: ValorUnico(campo = "clientId")
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     val clientId: String,
 
     @Enumerated(EnumType.STRING)
@@ -27,7 +26,7 @@ class ChavePix(
     val tipoChave: TipoChave,
 
     @field: Size(max = 77)
-    @field: ValorUnico(campo = "chave")
+    @field: ValorUnico
     @Column(unique = true)
     var chave: String,
 
